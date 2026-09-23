@@ -3,15 +3,27 @@ import { sfx } from './audio.js';
 import { speak } from './speech.js';
 import type { Settings } from '@monzilla/core';
 
+/**
+ * The concept art's chrome: cream panels, deep blue text, bright gem
+ * buttons, on a sky background. Battles darken to dusk but stay soft.
+ */
 export const COLORS = {
-  bg: 0x0d1b2a,
-  panel: 0x1b2a41,
-  panelLight: 0x27405e,
-  text: '#f4f6fb',
-  muted: '#9fb3c8',
-  good: 0x7fd8ff,
-  bad: 0xd500f9,
-  star: 0xffd54f,
+  bg: 0xbfe6f7,
+  panel: 0xfff8ec,
+  panelLight: 0xffffff,
+  header: 0x1f4e9c,
+  button: 0x4a90e2,
+  text: '#1f3a68',
+  muted: '#5b7396',
+  good: 0x4fc3f7,
+  bad: 0x9c27b0,
+  star: 0xffc83d,
+  /** Care buttons match the concept boards: red, blue, yellow, purple. */
+  feed: 0xe85d4a,
+  wash: 0x4aa3e8,
+  play: 0xf5b73a,
+  sleep: 0x7b5cd6,
+  alarm: 0x8e24aa,
 };
 
 export const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
@@ -73,23 +85,28 @@ export interface Button extends Phaser.GameObjects.Container {
  */
 export function makeButton(scene: Phaser.Scene, x: number, y: number, opts: ButtonOptions): Button {
   const size = opts.size ?? 88;
-  const color = opts.color ?? COLORS.panelLight;
+  const color = opts.color ?? COLORS.button;
   const container = scene.add.container(x, y) as Button;
 
   const glow = scene.add.graphics();
-  glow.fillStyle(COLORS.star, 0.55);
-  glow.fillRoundedRect(-size / 2 - 8, -size / 2 - 8, size + 16, size + 16, 22);
+  glow.fillStyle(COLORS.star, 0.7);
+  glow.fillRoundedRect(-size / 2 - 9, -size / 2 - 9, size + 18, size + 18, size * 0.3);
   glow.setVisible(false);
 
   const bg = scene.add.graphics();
   const drawBg = (c: number, alpha = 1) => {
     bg.clear();
-    bg.fillStyle(0x000000, 0.25);
-    bg.fillRoundedRect(-size / 2 + 3, -size / 2 + 5, size, size, 18);
+    const r = size * 0.24;
+    bg.fillStyle(0x1f3a68, 0.18 * alpha);
+    bg.fillRoundedRect(-size / 2 + 2, -size / 2 + 6, size, size, r);
+    bg.fillStyle(Phaser.Display.Color.IntegerToColor(c).darken(18).color, alpha);
+    bg.fillRoundedRect(-size / 2, -size / 2, size, size, r);
     bg.fillStyle(c, alpha);
-    bg.fillRoundedRect(-size / 2, -size / 2, size, size, 18);
-    bg.lineStyle(3, 0xffffff, 0.15);
-    bg.strokeRoundedRect(-size / 2, -size / 2, size, size, 18);
+    bg.fillRoundedRect(-size / 2 + 3, -size / 2 + 3, size - 6, size * 0.62, r * 0.85);
+    bg.fillStyle(0xffffff, 0.22 * alpha);
+    bg.fillRoundedRect(-size / 2 + 8, -size / 2 + 6, size - 16, size * 0.22, r * 0.5);
+    bg.lineStyle(3, 0xffffff, 0.85 * alpha);
+    bg.strokeRoundedRect(-size / 2, -size / 2, size, size, r);
   };
   drawBg(color);
 
@@ -100,8 +117,10 @@ export function makeButton(scene: Phaser.Scene, x: number, y: number, opts: Butt
     .text(0, size * 0.3, opts.sub ?? '', {
       fontSize: `${Math.round(size * 0.22)}px`,
       fontFamily: FONT,
-      color: COLORS.text,
+      color: '#ffffff',
       fontStyle: 'bold',
+      stroke: '#1f3a68',
+      strokeThickness: 3,
     })
     .setOrigin(0.5);
 
@@ -186,10 +205,10 @@ export function makeBar(
     .text(iconW + (width - iconW) / 2, height / 2, '', {
       fontSize: `${Math.round(height * 0.7)}px`,
       fontFamily: FONT,
-      color: COLORS.text,
+      color: '#ffffff',
       fontStyle: 'bold',
-      stroke: '#000',
-      strokeThickness: 3,
+      stroke: '#1f3a68',
+      strokeThickness: 4,
     })
     .setOrigin(0.5);
   container.add(g);
@@ -202,7 +221,7 @@ export function makeBar(
     g.clear();
     const bx = iconW;
     const bw = width - iconW;
-    g.fillStyle(0x000000, 0.45);
+    g.fillStyle(0x1f3a68, 0.14);
     g.fillRoundedRect(bx, 0, bw, height, height / 2);
     const ratio = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
     if (ratio > 0) {
@@ -211,7 +230,7 @@ export function makeBar(
       g.fillStyle(0xffffff, 0.25);
       g.fillRoundedRect(bx + 4, 3, Math.max(height, bw * ratio) - 8, height * 0.35, height * 0.2);
     }
-    g.lineStyle(2, 0xffffff, 0.25);
+    g.lineStyle(2, 0xffffff, 0.9);
     g.strokeRoundedRect(bx, 0, bw, height, height / 2);
     num.setText(opts.showNumber === false ? '' : `${Math.round(current)}`);
   };
@@ -244,14 +263,16 @@ export function makeBar(
   return container;
 }
 
-export function panel(scene: Phaser.Scene, x: number, y: number, w: number, h: number, color = COLORS.panel, alpha = 0.92) {
+export function panel(scene: Phaser.Scene, x: number, y: number, w: number, h: number, color = COLORS.panel, alpha = 0.96) {
   const g = scene.add.graphics();
-  g.fillStyle(0x000000, 0.25);
-  g.fillRoundedRect(x + 3, y + 5, w, h, 20);
+  g.fillStyle(0x1f3a68, 0.14 * alpha);
+  g.fillRoundedRect(x + 2, y + 6, w, h, 22);
   g.fillStyle(color, alpha);
-  g.fillRoundedRect(x, y, w, h, 20);
-  g.lineStyle(2, 0xffffff, 0.12);
-  g.strokeRoundedRect(x, y, w, h, 20);
+  g.fillRoundedRect(x, y, w, h, 22);
+  g.lineStyle(3, 0xffffff, 0.9 * alpha);
+  g.strokeRoundedRect(x, y, w, h, 22);
+  g.lineStyle(2, 0x9cc3e8, 0.6 * alpha);
+  g.strokeRoundedRect(x - 2, y - 2, w + 4, h + 4, 24);
   return g;
 }
 
@@ -262,7 +283,7 @@ export function label(scene: Phaser.Scene, x: number, y: number, text: string, s
 /** Floating text that rises and fades, e.g. "+25" or "-12". */
 export function floatText(scene: Phaser.Scene, x: number, y: number, text: string, color = '#ffffff', settings?: Settings, size = 36) {
   const t = scene.add
-    .text(x, y, text, { fontSize: `${size}px`, fontFamily: FONT, color, fontStyle: 'bold', stroke: '#000', strokeThickness: 5 })
+    .text(x, y, text, { fontSize: `${size}px`, fontFamily: FONT, color, fontStyle: 'bold', stroke: '#1f3a68', strokeThickness: 5 })
     .setOrigin(0.5)
     .setDepth(1000);
   if (settings?.reduceMotion) {

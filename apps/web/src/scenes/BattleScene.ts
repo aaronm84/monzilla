@@ -80,12 +80,13 @@ export class BattleScene extends Phaser.Scene {
 
     // Backdrop
     const bg = this.add.graphics();
-    bg.fillGradientStyle(0x1a0b2e, 0x1a0b2e, 0x0d1b2a, 0x0d1b2a, 1, 1, 1, 1);
+    // Dusk: a soft purple sky over sand, so villains' glow still reads.
+    bg.fillGradientStyle(0xd7c4f2, 0xd7c4f2, 0xf3e3c8, 0xf3e3c8, 1, 1, 1, 1);
     bg.fillRect(0, 0, L.w, L.h);
 
     // Top: home, weather, villain bar with number
     const topH = L.btn * 0.8 + L.pad;
-    panel(this, L.pad, L.pad, L.w - L.pad * 2, topH, COLORS.panel, 0.75);
+    panel(this, L.pad, L.pad, L.w - L.pad * 2, topH, COLORS.panel, 0.94);
     const topY = L.pad + topH / 2;
     makeButton(this, L.pad * 2 + L.btn * 0.4, topY, {
       icon: '🏠', label: 'Pause and go home', size: L.btn * 0.8, settings: save.settings, onTap: () => this.scene.start('Island'),
@@ -95,7 +96,7 @@ export class BattleScene extends Phaser.Scene {
     const barW = L.w - barX - L.pad * 2;
     this.hpBar = makeBar(this, barX, topY - 16, barW, 32, {
       icon: TYPE_INFO[villain.genome.type].icon,
-      color: 0xd500f9,
+      color: 0x9c27b0,
       value: this.battle.villainHp,
       max: villain.maxHp,
       settings: save.settings,
@@ -107,7 +108,7 @@ export class BattleScene extends Phaser.Scene {
     const arenaH = L.h - arenaTop - bottomH;
     const floorY = arenaTop + arenaH * 0.68;
     const ground = this.add.graphics();
-    ground.fillStyle(0x223044, 1);
+    ground.fillStyle(0xe2c98f, 1);
     ground.fillEllipse(L.w / 2, floorY + 30, L.w * 1.2, arenaH * 0.5);
 
     const scale = L.compact ? 0.85 : 1.1;
@@ -160,7 +161,7 @@ export class BattleScene extends Phaser.Scene {
         label: move.label,
         sub: `${damage}${eff}`,
         size: L.btn,
-        color: effectiveness >= 2 ? 0x2e7d32 : COLORS.panelLight,
+        color: effectiveness >= 2 ? 0x43a047 : COLORS.button,
         settings: save.settings,
         disabled: this.battle.status !== 'active',
         onTap: () => this.doMove(move, guardian),
@@ -189,7 +190,7 @@ export class BattleScene extends Phaser.Scene {
       this.tweens.add({ targets: this.guardianGfx, x: 60, duration: 140, yoyo: true, ease: 'Quad.easeOut' });
       this.tweens.add({ targets: this.villainGfx, x: this.villainGfx.x + 30, duration: 90, yoyo: true, repeat: 2, delay: 140 });
     }
-    const color = result.turn.effectiveness >= 2 ? '#69f0ae' : result.turn.effectiveness <= 0.5 ? '#b0bec5' : '#ffffff';
+    const color = result.turn.effectiveness >= 2 ? '#7cff9e' : result.turn.effectiveness <= 0.5 ? '#c9d3e0' : '#ffffff';
     floatText(this, this.villainPos.x, this.villainPos.y - 120, `-${result.turn.damage}`, color, save.settings, result.turn.effectiveness >= 2 ? 48 : 36);
     this.time.delayedCall(200, () => this.hpBar.setValue(this.battle.villainHp));
 
@@ -231,7 +232,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     sfx.sparkle();
-    burst(this, this.villainPos.x, this.villainPos.y, 0xd500f9, save.settings, 30);
+    burst(this, this.villainPos.x, this.villainPos.y, 0x9c27b0, save.settings, 30);
     if (!save.settings.reduceMotion) {
       this.tweens.add({ targets: this.villainGfx, y: -400, alpha: 0, duration: 900, ease: 'Quad.easeIn' });
     } else {

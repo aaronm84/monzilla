@@ -36,7 +36,7 @@ export function fitIsland(island: Island, x: number, y: number, w: number, h: nu
 /** Draw water and terrain tiles. Slight per-tile shading from elevation. */
 export function drawIslandTiles(g: Phaser.GameObjects.Graphics, island: Island, view: IslandView, gridLines = false) {
   const t = view.tile;
-  g.fillStyle(0x1e5f8f, 1);
+  g.fillStyle(0x2f8fc7, 1);
   g.fillRect(view.ox - t, view.oy - t, t * (island.width + 2), t * (island.height + 2));
   for (let y = 0; y < island.height; y++) {
     for (let x = 0; x < island.width; x++) {
@@ -44,8 +44,9 @@ export function drawIslandTiles(g: Phaser.GameObjects.Graphics, island: Island, 
       const px = view.ox + x * t;
       const py = view.oy + y * t;
       if (tile.terrain === 'water') {
-        const shade = 0.15 + tile.elevation * 0.4;
-        g.fillStyle(0x2a7fb8, shade);
+        // Shallows get lighter toward the shore, like the concept boards.
+        const shade = 0.2 + tile.elevation * 0.9;
+        g.fillStyle(0x7fd4f0, shade);
         g.fillRect(px, py, t, t);
         continue;
       }

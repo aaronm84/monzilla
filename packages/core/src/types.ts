@@ -34,11 +34,11 @@ export type Stage = (typeof STAGES)[number];
 
 /** Icon and color per type. Icons are emoji so no font or image assets are needed. */
 export const TYPE_INFO: Record<KaijuType, { icon: string; color: string; label: string }> = {
-  fire: { icon: '🔥', color: '#ff6b35', label: 'Fire' },
-  plant: { icon: '🌿', color: '#4caf50', label: 'Plant' },
-  rock: { icon: '🪨', color: '#a1887f', label: 'Rock' },
-  lightning: { icon: '⚡', color: '#ffd600', label: 'Lightning' },
-  water: { icon: '💧', color: '#29b6f6', label: 'Water' },
-  ice: { icon: '❄️', color: '#b3e5fc', label: 'Ice' },
-  sky: { icon: '🌪️', color: '#b39ddb', label: 'Sky' },
+  fire: { icon: '🔥', color: '#ff6a3d', label: 'Fire' },
+  plant: { icon: '🌿', color: '#5cc25a', label: 'Plant' },
+  rock: { icon: '🪨', color: '#8d7b6b', label: 'Rock' },
+  lightning: { icon: '⚡', color: '#ffc73a', label: 'Lightning' },
+  water: { icon: '💧', color: '#3aa7ff', label: 'Water' },
+  ice: { icon: '❄️', color: '#6fbfe8', label: 'Ice' },
+  sky: { icon: '🌪️', color: '#b79cff', label: 'Sky' },
 };

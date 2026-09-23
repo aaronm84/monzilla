@@ -56,18 +56,18 @@ export interface Family {
  */
 export function newMemberSave(memberId: string, name: string, seedSource: string | number, now = Date.now()): MemberSave {
   const seed = typeof seedSource === 'string' ? hashString(seedSource) : seedSource >>> 0;
-  // The first kaiju is Ember, the lizard regular, so every island starts
-  // with the same friendly face.
-  const starterGenome = rosterGenome(rosterById('ember')!);
+  // The first kaiju is Tidalon, the gentle water lizard, so every island
+  // starts with the same friendly face.
+  const starterGenome = rosterGenome(rosterById('tidalon')!);
   const starter: Kaiju = {
     id: 'k_starter',
-    name: 'Ember',
+    name: 'Tidalon',
     genome: starterGenome,
     care: newCareState(),
     growth: newGrowth('hatchling'),
     createdAt: now,
   };
-  const secondEgg = newEgg('egg_second', 'water', forkSeed(seed, 'second'), 2);
+  const secondEgg = newEgg('egg_second', 'fire', forkSeed(seed, 'second'), 2);
   return {
     version: SAVE_VERSION,
     memberId,

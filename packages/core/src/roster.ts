@@ -25,15 +25,16 @@ export interface RosterEntry {
 
 export const ROSTER: RosterEntry[] = [
   // Guardians (hatchable regulars)
-  { id: 'ember', name: 'Ember', kind: 'lizard', type: 'fire', alignment: 'guardian', seed: 1001 },
-  { id: 'luna', name: 'Luna', kind: 'moth', type: 'sky', alignment: 'guardian', seed: 1002 },
+  { id: 'tidalon', name: 'Tidalon', kind: 'lizard', type: 'water', alignment: 'guardian', seed: 1001 },
+  { id: 'luminara', name: 'Luminara', kind: 'moth', type: 'plant', alignment: 'guardian', seed: 1002 },
+  { id: 'frostrok', name: 'Frostrok', kind: 'yeti', type: 'ice', alignment: 'guardian', seed: 1004 },
   { id: 'boulder', name: 'Boulder', kind: 'turtle', type: 'rock', alignment: 'guardian', seed: 1003 },
-  { id: 'frosty', name: 'Frosty', kind: 'yeti', type: 'ice', alignment: 'guardian', seed: 1004 },
   { id: 'bolt', name: 'Bolt', kind: 'robot', type: 'lightning', alignment: 'guardian', seed: 1005 },
   // Villains (recurring bad guys)
-  { id: 'tridorah', name: 'Tridorah', kind: 'dragon', type: 'lightning', alignment: 'villain', seed: 2001, heads: 3, weather: 'storm', boss: true },
+  { id: 'pyronyx', name: 'Pyronyx', kind: 'dragon', type: 'fire', alignment: 'villain', seed: 2001, heads: 3, weather: 'storm', boss: true },
+  { id: 'moltrex', name: 'Moltrex', kind: 'turtle', type: 'fire', alignment: 'villain', seed: 2006, weather: 'sunny' },
+  { id: 'shadowra', name: 'Shadowra', kind: 'bird', type: 'sky', alignment: 'villain', seed: 2003, weather: 'wind' },
   { id: 'pinchor', name: 'Pinchor', kind: 'crab', type: 'ice', alignment: 'villain', seed: 2002, weather: 'snow' },
-  { id: 'squall', name: 'Squall', kind: 'bird', type: 'sky', alignment: 'villain', seed: 2003, weather: 'wind' },
   { id: 'gloop', name: 'Gloop', kind: 'blob', type: 'water', alignment: 'villain', seed: 2004, weather: 'rain' },
   { id: 'murk', name: 'Murk', kind: 'serpent', type: 'plant', alignment: 'villain', seed: 2005, weather: 'fog' },
 ];

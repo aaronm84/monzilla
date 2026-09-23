@@ -51,17 +51,41 @@ export interface Genome {
  * must always be obvious at a glance.
  */
 const TYPE_TINT: Record<KaijuType, string> = {
-  fire: '#ff7043',
-  plant: '#66bb6a',
-  rock: '#a1887f',
-  lightning: '#ffca28',
-  water: '#42a5f5',
-  ice: '#b3e5fc',
-  sky: '#b39ddb',
+  fire: '#ff6a3d',
+  plant: '#5cc25a',
+  rock: '#8d7b6b',
+  lightning: '#ffc73a',
+  water: '#3aa7ff',
+  ice: '#6fbfe8',
+  sky: '#b79cff',
 };
 
-const GUARDIAN_SECONDARY = ['#e3f2fd', '#bbdefb', '#e0f7fa', '#f1f8e9'] as const;
-const VILLAIN_SECONDARY = ['#4a148c', '#6a1b9a', '#880e4f', '#311b92'] as const;
+/** Plate, horn and spike colour per type: the crystal look from the concept art. */
+export const PLATE_COLOR: Record<KaijuType, string> = {
+  fire: '#ff9a3d',
+  plant: '#7ed957',
+  rock: '#b0a08e',
+  lightning: '#ffe066',
+  water: '#7fd4ff',
+  ice: '#d8f3ff',
+  sky: '#d6c8ff',
+};
+
+const GUARDIAN_SECONDARY = ['#fff6e5', '#eaf6ff', '#e8fff3', '#fdf0ff'] as const;
+const VILLAIN_SECONDARY = ['#3b1f5e', '#4a1c6b', '#5c1a4a', '#2c1e63'] as const;
+const VILLAIN_BASE = '#3a2352';
+
+/** Mix two hex colours; t = 0 gives a, t = 1 gives b. */
+export function mixHex(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16);
+  const pb = parseInt(b.slice(1), 16);
+  const ch = (shift: number) => {
+    const ca = (pa >> shift) & 0xff;
+    const cb = (pb >> shift) & 0xff;
+    return Math.round(ca + (cb - ca) * t);
+  };
+  return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, '0')}`;
+}
 
 export function makePalette(rng: Rng, type: KaijuType, alignment: Alignment, shiny: boolean): Palette {
   const tint = shiny ? '#ffd54f' : TYPE_TINT[type];
@@ -69,14 +93,16 @@ export function makePalette(rng: Rng, type: KaijuType, alignment: Alignment, shi
     return {
       primary: tint,
       secondary: rng.pick(GUARDIAN_SECONDARY),
-      accent: '#ffffff',
+      accent: PLATE_COLOR[type],
       glow: '#7fd8ff',
     };
   }
+  // Villains keep their type in the plates but the body goes dark, so the
+  // silhouette reads as a bad guy before the colour does.
   return {
-    primary: tint,
+    primary: mixHex(tint, VILLAIN_BASE, 0.55),
     secondary: rng.pick(VILLAIN_SECONDARY),
-    accent: '#ff1744',
+    accent: shiny ? '#ffd54f' : mixHex(PLATE_COLOR[type], '#ff1744', 0.35),
     glow: '#d500f9',
   };
 }

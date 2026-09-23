@@ -21,7 +21,7 @@ export class DexScene extends Phaser.Scene {
     const L = layoutFor(this);
 
     const topH = L.btn * 0.8 + L.pad;
-    panel(this, L.pad, L.pad, L.w - L.pad * 2, topH, COLORS.panel, 0.95).setScrollFactor(0).setDepth(10);
+    panel(this, L.pad, L.pad, L.w - L.pad * 2, topH, COLORS.panel, 0.98).setScrollFactor(0).setDepth(10);
     const topY = L.pad + topH / 2;
     makeButton(this, L.pad * 2 + L.btn * 0.4, topY, {
       icon: '🏠', label: 'Back home', size: L.btn * 0.8, settings: save.settings, onTap: () => this.scene.start('Island'),
@@ -64,7 +64,7 @@ export class DexScene extends Phaser.Scene {
         const x = startX + col * (cardW + gap);
         const cy0 = y + row * (cardH + gap);
         const type = page.key.split(':')[1] as KaijuType;
-        panel(this, x, cy0, cardW, cardH, page.entry ? COLORS.panelLight : COLORS.panel, 0.9);
+        panel(this, x, cy0, cardW, cardH, page.entry ? COLORS.panelLight : 0xe9eef5, 0.95);
         const gfx = this.add.graphics();
         const cx = x + cardW / 2;
         const cy = cy0 + cardH * 0.5;

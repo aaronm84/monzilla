@@ -77,12 +77,12 @@ export class IslandScene extends Phaser.Scene {
     const tiles = this.add.graphics();
     drawIslandTiles(tiles, island, view);
     drawBlocks(tiles, save.blocks, view);
-    tiles.setAlpha(0.85);
+    tiles.setAlpha(0.95);
 
     // Sky gradient on top of the island so the kaiju stands out.
     const sky = this.add.graphics();
-    sky.fillGradientStyle(COLORS.bg, COLORS.bg, COLORS.bg, COLORS.bg, 0.6, 0.6, 0, 0);
-    sky.fillRect(0, 0, L.w, hudH + 40);
+    sky.fillGradientStyle(0xe6f5ff, 0xe6f5ff, COLORS.bg, COLORS.bg, 0.9, 0.9, 0, 0);
+    sky.fillRect(0, 0, L.w, hudH);
 
     // --- Kaiju -----------------------------------------------------------
     // Landscape: a column to the right of the island. Name on top, bars
@@ -125,7 +125,7 @@ export class IslandScene extends Phaser.Scene {
         const info = CARE_INFO[action];
         this.careBars[action] = makeBar(this, barsX, barsY + i * (barH + barGap), barW, barH, {
           icon: info.icon,
-          color: 0x66bb6a,
+          color: COLORS[action],
           value: kaiju.care[info.bar],
           settings: save.settings,
         });
@@ -186,7 +186,7 @@ export class IslandScene extends Phaser.Scene {
     const today = dayIndex();
     const weather = weatherFor(save.seed, today);
     const tomorrow = weatherFor(save.seed, today + 1);
-    panel(this, L.pad, L.pad, L.w - L.pad * 2, L.btn + L.pad, COLORS.panel, 0.75);
+    panel(this, L.pad, L.pad, L.w - L.pad * 2, L.btn + L.pad, COLORS.panel, 0.94);
     const hudY = L.pad + (L.btn + L.pad) / 2;
     // Weather today ▸ tomorrow, then stars. On a phone they stack in two rows.
     this.add
@@ -221,6 +221,7 @@ export class IslandScene extends Phaser.Scene {
         icon: CARE_INFO[action].icon,
         label: CARE_INFO[action].label,
         size: L.btn,
+        color: COLORS[action],
         settings: save.settings,
         disabled: !kaiju,
         onTap: () => this.care(action),
@@ -231,7 +232,7 @@ export class IslandScene extends Phaser.Scene {
       icon: save.activeBattle ? '⚔️' : '🚨',
       label: save.activeBattle ? 'Back to the fight' : villainToday ? 'Bad guy alert' : 'All clear',
       size: L.btn,
-      color: villainToday ? 0x6a1b9a : COLORS.panelLight,
+      color: villainToday ? COLORS.alarm : 0x9fb3c8,
       settings: save.settings,
       disabled: !villainToday || !kaiju,
       onTap: () => this.scene.start('Battle'),
@@ -341,7 +342,7 @@ export class IslandScene extends Phaser.Scene {
       ['🛡️', stats.guard],
     ];
     rows.forEach(([icon, v], i) => {
-      c.add(makeBar(this, x + 16, y + 52 + i * 34, w - 32, 26, { icon, color: 0x42a5f5, value: v, settings: save.settings }));
+      c.add(makeBar(this, x + 16, y + 52 + i * 34, w - 32, 26, { icon, color: COLORS.button, value: v, settings: save.settings }));
     });
     c.setDepth(500);
     this.statsPanel = c;

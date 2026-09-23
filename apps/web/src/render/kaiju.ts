@@ -2,7 +2,13 @@ import Phaser from 'phaser';
 import type { Genome, Kind } from '@monzilla/core';
 
 const hex = (s: string) => Phaser.Display.Color.HexStringToColor(s).color;
-const DARK = 0x1a1a2e;
+const DARK = 0x1f3a68;
+
+/** Lighten (amount > 0) or darken (amount < 0) a packed colour by a percentage. */
+function shade(color: number, amount: number): number {
+  const c = Phaser.Display.Color.IntegerToColor(color);
+  return amount >= 0 ? c.lighten(amount).color : c.darken(-amount).color;
+}
 
 type G = Phaser.GameObjects.Graphics;
 
@@ -19,6 +25,7 @@ interface Ctx {
   secondary: number;
   accent: number;
   villain: boolean;
+  type: Genome['type'];
 }
 
 /**
@@ -44,6 +51,7 @@ export function drawKaiju(g: G, genome: Genome, x: number, y: number, scale = 1,
     secondary: hex(genome.palette.secondary),
     accent: hex(genome.palette.accent),
     villain: genome.alignment === 'villain',
+    type: genome.type,
   };
 
   if (withGlow) {
@@ -71,6 +79,83 @@ export function drawKaiju(g: G, genome: Genome, x: number, y: number, scale = 1,
 
 // ---------------------------------------------------------------------------
 // Shared parts
+
+/** Two-tone body: a darker base with a lighter, slightly raised top. */
+function bodyEllipse(c: Ctx, x: number, y: number, w: number, h: number) {
+  const { g, primary } = c;
+  g.fillStyle(shade(primary, -18), 1);
+  g.fillEllipse(x, y, w, h);
+  g.fillStyle(primary, 1);
+  g.fillEllipse(x - w * 0.03, y - h * 0.05, w * 0.92, h * 0.9);
+  g.fillStyle(0xffffff, 0.18);
+  g.fillEllipse(x - w * 0.15, y - h * 0.25, w * 0.4, h * 0.28);
+}
+
+/**
+ * A faceted crystal plate: the signature shape from the concept art. Used
+ * for back plates, horns, spikes and crests. Points up from (x, baseY).
+ */
+function plate(c: Ctx, x: number, baseY: number, w: number, h: number, tilt = 0, color = c.accent) {
+  const { g } = c;
+  const tipX = x + tilt;
+  const tipY = baseY - h;
+  g.fillStyle(shade(color, -22), 1);
+  g.fillTriangle(x - w / 2, baseY, x + w / 2, baseY, tipX, tipY);
+  // Left facet catches the light.
+  g.fillStyle(shade(color, 18), 1);
+  g.fillTriangle(x - w / 2, baseY, tipX, tipY, x + tilt * 0.4 - w * 0.05, baseY - h * 0.15);
+  // Bright edge highlight.
+  g.fillStyle(0xffffff, 0.45);
+  g.fillTriangle(x - w * 0.35, baseY - h * 0.1, tipX - w * 0.05, tipY + h * 0.15, x - w * 0.15, baseY - h * 0.35);
+}
+
+/** Type-specific surface detail drawn on the belly patch. */
+function material(c: Ctx, bx: number, by: number, bw: number, bh: number) {
+  const { g, u, primary } = c;
+  const line = Math.max(1.5, u * 0.06);
+  switch (c.type) {
+    case 'fire':
+      g.lineStyle(line, shade(primary, -30), 0.8);
+      g.lineBetween(bx - bw * 0.2, by - bh * 0.1, bx, by + bh * 0.15);
+      g.lineBetween(bx, by + bh * 0.15, bx + bw * 0.2, by - bh * 0.05);
+      break;
+    case 'water':
+      g.lineStyle(line, shade(primary, -10), 0.7);
+      for (let i = -1; i <= 1; i += 2) {
+        g.beginPath();
+        g.arc(bx - bw * 0.15, by + i * bh * 0.12, bw * 0.15, Math.PI, 0, false);
+        g.arc(bx + bw * 0.15, by + i * bh * 0.12, bw * 0.15, Math.PI, 0, false);
+        g.strokePath();
+      }
+      break;
+    case 'plant':
+      g.lineStyle(line, shade(primary, -25), 0.7);
+      g.lineBetween(bx, by - bh * 0.3, bx, by + bh * 0.3);
+      g.lineBetween(bx, by, bx - bw * 0.18, by - bh * 0.15);
+      g.lineBetween(bx, by + bh * 0.12, bx + bw * 0.18, by - bh * 0.03);
+      break;
+    case 'ice':
+      g.fillStyle(0xffffff, 0.7);
+      drawStar(g, bx + bw * 0.12, by - bh * 0.1, u * 0.14);
+      break;
+    case 'rock':
+      g.fillStyle(shade(primary, -20), 0.5);
+      g.fillCircle(bx - bw * 0.15, by + bh * 0.05, u * 0.12);
+      g.fillCircle(bx + bw * 0.1, by - bh * 0.12, u * 0.09);
+      g.fillCircle(bx + bw * 0.12, by + bh * 0.15, u * 0.1);
+      break;
+    case 'lightning':
+      g.lineStyle(line * 1.2, shade(primary, -35), 0.85);
+      g.lineBetween(bx + bw * 0.05, by - bh * 0.28, bx - bw * 0.08, by);
+      g.lineBetween(bx - bw * 0.08, by, bx + bw * 0.08, by);
+      g.lineBetween(bx + bw * 0.08, by, bx - bw * 0.05, by + bh * 0.28);
+      break;
+    case 'sky':
+      g.lineStyle(line, shade(primary, -15), 0.6);
+      for (let i = -1; i <= 1; i++) g.lineBetween(bx - bw * 0.2, by + i * bh * 0.14, bx + bw * 0.2, by + i * bh * 0.14 - bh * 0.05);
+      break;
+  }
+}
 
 function tail(c: Ctx, tx: number, ty: number) {
   const { g, u, primary, secondary } = c;
@@ -123,58 +208,80 @@ function legs(c: Ctx, spread = 0.3, size = 0.7) {
 }
 
 function spikes(c: Ctx, cx: number, top: number, span: number, curve = 0.35) {
-  const { g, u, accent } = c;
+  const { u } = c;
   const n = c.genome.parts.spikes;
   if (n <= 0) return;
-  g.fillStyle(accent, 1);
   for (let i = 0; i < n; i++) {
     const t = n === 1 ? 0.5 : i / (n - 1);
     const sx = cx - span / 2 + span * t;
-    const sy = top + Math.abs(t - 0.5) * c.bh * curve;
-    const sh = u * (0.55 - Math.abs(t - 0.5) * 0.3);
-    g.fillTriangle(sx - u * 0.18, sy + u * 0.05, sx + u * 0.18, sy + u * 0.05, sx, sy - sh);
+    const sy = top + Math.abs(t - 0.5) * c.bh * curve + u * 0.08;
+    const sh = u * (1.0 - Math.abs(t - 0.5) * 0.6);
+    plate(c, sx, sy, u * 0.62, sh, (t - 0.5) * u * 0.35);
   }
 }
 
 function horns(c: Ctx, hx: number, hy: number, r: number, count = c.genome.parts.horns) {
-  const { g, accent } = c;
   if (count <= 0) return;
-  g.fillStyle(accent, 1);
   for (let h = 0; h < count; h++) {
     const t = count === 1 ? 0 : h / (count - 1) - 0.5;
-    const hxx = hx + t * r * 1.1;
-    g.fillTriangle(hxx - r * 0.18, hy - r * 0.7, hxx + r * 0.18, hy - r * 0.7, hxx + t * r * 0.4, hy - r * 1.5);
+    plate(c, hx + t * r * 1.1, hy - r * 0.65, r * 0.42, r * 0.95, t * r * 0.5);
   }
 }
 
 function eye(c: Ctx, ex: number, ey: number, r: number, square = false) {
-  const { g, accent, villain } = c;
-  g.fillStyle(0xffffff, 1);
-  if (square) g.fillRect(ex - r, ey - r * 0.7, r * 2, r * 1.4);
-  else g.fillCircle(ex, ey, r);
-  g.fillStyle(villain ? accent : DARK, 1);
-  if (square) g.fillRect(ex - r * 0.4, ey - r * 0.5, r * 1.1, r);
-  else g.fillCircle(ex + r * 0.25, ey, r * 0.5);
+  const { g, villain } = c;
+  const R = r * 1.25;
   if (villain) {
-    g.lineStyle(Math.max(2, r * 0.4), DARK, 1);
-    g.lineBetween(ex - r * 1.3, ey - r * 1.5, ex + r * 1, ey - r * 0.8);
+    // Narrow slanted eye with a red pupil and a heavy brow.
+    g.fillStyle(0xfff3f3, 1);
+    if (square) g.fillRect(ex - R, ey - R * 0.45, R * 2, R * 0.9);
+    else g.fillEllipse(ex, ey, R * 2.1, R * 1.1);
+    g.fillStyle(0xff1744, 1);
+    if (square) g.fillRect(ex - R * 0.35, ey - R * 0.35, R * 0.9, R * 0.7);
+    else g.fillCircle(ex + R * 0.25, ey, R * 0.42);
+    g.fillStyle(0xffffff, 0.8);
+    g.fillCircle(ex + R * 0.1, ey - R * 0.15, R * 0.14);
+    g.lineStyle(Math.max(2, R * 0.38), 0x2a1a3e, 1);
+    g.lineBetween(ex - R * 1.2, ey - R * 1.15, ex + R * 1.05, ey - R * 0.55);
+    return;
   }
+  g.fillStyle(0xffffff, 1);
+  if (square) g.fillRect(ex - R, ey - R * 0.7, R * 2, R * 1.4);
+  else g.fillCircle(ex, ey, R);
+  g.fillStyle(DARK, 1);
+  if (square) g.fillRect(ex - R * 0.4, ey - R * 0.5, R * 1.1, R);
+  else g.fillCircle(ex + R * 0.2, ey + R * 0.05, R * 0.58);
+  g.fillStyle(0xffffff, 0.95);
+  g.fillCircle(ex + R * 0.35, ey - R * 0.25, R * 0.22);
 }
 
 function mouth(c: Ctx, mx: number, my: number, w: number, thick: number) {
-  c.g.lineStyle(Math.max(2, thick), DARK, 1);
-  c.g.lineBetween(mx, my, mx + w, my - w * 0.08);
+  const { g } = c;
+  g.lineStyle(Math.max(2, thick * 1.3), c.villain ? 0x2a1a3e : DARK, 1);
+  if (c.villain) {
+    g.lineBetween(mx, my + w * 0.05, mx + w, my - w * 0.1);
+    g.fillStyle(0xffffff, 1);
+    g.fillTriangle(mx + w * 0.55, my - w * 0.02, mx + w * 0.75, my - w * 0.05, mx + w * 0.65, my + w * 0.25);
+    return;
+  }
+  g.beginPath();
+  g.arc(mx + w * 0.5, my - w * 0.15, w * 0.55, 0.35, Math.PI - 0.35, false);
+  g.strokePath();
 }
 
 /** A round head with snout, eye, horns and mouth (lizard, dragon, serpent, turtle). */
 function head(c: Ctx, hx: number, hy: number, r: number, hornCount = c.genome.parts.horns) {
   const { g, primary } = c;
   horns(c, hx, hy, r, hornCount);
-  g.fillStyle(primary, 1);
+  g.fillStyle(shade(primary, -18), 1);
   g.fillCircle(hx, hy, r);
-  g.fillEllipse(hx + r * 0.55, hy + r * 0.2, r * 0.9, r * 0.6);
-  eye(c, hx + r * 0.25, hy - r * 0.2, r * 0.3);
-  mouth(c, hx + r * 0.35, hy + r * 0.45, r * 0.6, r * 0.1);
+  g.fillStyle(primary, 1);
+  g.fillCircle(hx - r * 0.06, hy - r * 0.08, r * 0.92);
+  g.fillEllipse(hx + r * 0.6, hy + r * 0.25, r * 1.0, r * 0.65);
+  g.fillStyle(0xffffff, 0.2);
+  g.fillEllipse(hx - r * 0.3, hy - r * 0.45, r * 0.5, r * 0.3);
+  eye(c, hx + r * 0.22, hy - r * 0.22, r * 0.3);
+  mouth(c, hx + r * 0.4, hy + r * 0.5, r * 0.6, r * 0.1);
 }
 
 /** Positions for 1..3 heads above the body. */
@@ -191,8 +298,13 @@ function headSpots(c: Ctx, r: number): { hx: number; hy: number }[] {
 }
 
 function belly(c: Ctx) {
+  const bx = c.x + c.bw * 0.05;
+  const by = c.y + c.bh * 0.15;
+  const bw = c.bw * 0.55;
+  const bh = c.bh * 0.55;
   c.g.fillStyle(c.secondary, 1);
-  c.g.fillEllipse(c.x + c.bw * 0.05, c.y + c.bh * 0.15, c.bw * 0.55, c.bh * 0.55);
+  c.g.fillEllipse(bx, by, bw, bh);
+  material(c, bx, by, bw, bh);
 }
 
 // ---------------------------------------------------------------------------
@@ -204,11 +316,10 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     tail(c, x - bw / 2 + u * 0.2, y + bh * 0.15);
     wings(c, y - bh * 0.25);
     legs(c);
-    g.fillStyle(primary, 1);
-    g.fillEllipse(x, y, bw, bh);
+    bodyEllipse(c, x, y, bw, bh);
     belly(c);
     spikes(c, x, y - bh / 2, bw * 0.7);
-    const r = u * 0.75;
+    const r = u * (c.genome.parts.heads === 1 ? 0.9 : 0.65);
     for (const s of headSpots(c, r)) head(c, s.hx, s.hy, r);
   },
 
@@ -217,12 +328,11 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     tail(c, x - bw / 2 + u * 0.2, y + bh * 0.15);
     wings(c, y - bh * 0.3, 1.3);
     legs(c, 0.3, 0.8);
-    g.fillStyle(primary, 1);
-    g.fillEllipse(x, y, bw, bh);
+    bodyEllipse(c, x, y, bw, bh);
     belly(c);
     spikes(c, x, y - bh / 2, bw * 0.6);
     // Long necks rising to each head.
-    const r = u * (c.genome.parts.heads === 1 ? 0.65 : 0.5);
+    const r = u * (c.genome.parts.heads === 1 ? 0.75 : 0.55);
     for (const s of headSpots(c, r)) {
       const nx = s.hx - bw * 0.1;
       const ny = s.hy - r * 1.4;
@@ -250,10 +360,10 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
       const a = (i / 12) * Math.PI * 2;
       g.fillCircle(x + Math.cos(a) * bw * 0.42, y + Math.sin(a) * bh * 0.42, u * 0.22);
     }
-    g.fillEllipse(x, y, bw * 0.85, bh * 0.9);
+    bodyEllipse(c, x, y, bw * 0.85, bh * 0.9);
     belly(c);
     // Small head with antennae.
-    const r = u * 0.5;
+    const r = u * 0.6;
     const hy = y - bh / 2 - r * 0.2;
     g.lineStyle(Math.max(2, u * 0.08), primary, 1);
     for (const side of [-1, 1]) {
@@ -261,10 +371,13 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
       g.fillStyle(accent, 1);
       g.fillCircle(x + side * r * 1.2, hy - r * 2.2, r * 0.25);
     }
-    g.fillStyle(primary, 1);
+    g.fillStyle(shade(primary, -15), 1);
     g.fillCircle(x, hy, r);
-    eye(c, x - r * 0.35, hy - r * 0.1, r * 0.28);
-    eye(c, x + r * 0.35, hy - r * 0.1, r * 0.28);
+    g.fillStyle(primary, 1);
+    g.fillCircle(x - r * 0.05, hy - r * 0.08, r * 0.9);
+    eye(c, x - r * 0.35, hy - r * 0.1, r * 0.26);
+    eye(c, x + r * 0.35, hy - r * 0.1, r * 0.26);
+    mouth(c, x - r * 0.25, hy + r * 0.45, r * 0.5, r * 0.08);
   },
 
   turtle(c) {
@@ -272,17 +385,20 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     tail(c, x - bw / 2 + u * 0.1, y + bh * 0.2);
     wings(c, y - bh * 0.1, 0.8);
     legs(c, 0.38, 0.75);
-    // Shell dome in the secondary colour with a few plates.
-    g.fillStyle(secondary, 1);
+    // Shell dome in the secondary colour with crystal plates on top.
+    g.fillStyle(shade(secondary, -20), 1);
     g.fillEllipse(x, y - bh * 0.05, bw, bh * 0.95);
+    g.fillStyle(secondary, 1);
+    g.fillEllipse(x - bw * 0.03, y - bh * 0.1, bw * 0.9, bh * 0.82);
     g.fillStyle(primary, 0.35);
     g.fillEllipse(x, y - bh * 0.1, bw * 0.45, bh * 0.4);
     for (const side of [-1, 1]) g.fillEllipse(x + side * bw * 0.3, y + bh * 0.05, bw * 0.28, bh * 0.3);
+    material(c, x, y - bh * 0.05, bw * 0.6, bh * 0.5);
     // Underside strip.
     g.fillStyle(primary, 1);
     g.fillEllipse(x, y + bh * 0.4, bw * 0.95, bh * 0.25);
     spikes(c, x, y - bh * 0.5, bw * 0.7, 0.5);
-    const r = u * 0.55;
+    const r = u * 0.65;
     head(c, x + bw * 0.5 + r * 0.4, y - bh * 0.05, r);
   },
 
@@ -299,7 +415,7 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
       const py = y + Math.sin(a) * ry;
       g.fillTriangle(px, py, px + Math.cos(a) * u * 0.45, py + Math.sin(a) * u * 0.45, x + Math.cos(a + 0.35) * rx, y + Math.sin(a + 0.35) * ry);
     }
-    g.fillEllipse(x, y, bw, bh);
+    bodyEllipse(c, x, y, bw, bh);
     // Long arms with big hands.
     for (const side of [-1, 1]) {
       g.fillStyle(primary, 1);
@@ -310,9 +426,9 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     // Face patch on the upper body; no separate head.
     g.fillStyle(secondary, 1);
     g.fillEllipse(x + bw * 0.08, y - bh * 0.18, bw * 0.55, bh * 0.45);
-    eye(c, x - bw * 0.05, y - bh * 0.25, u * 0.2);
-    eye(c, x + bw * 0.2, y - bh * 0.25, u * 0.2);
-    mouth(c, x - bw * 0.05, y - bh * 0.02, bw * 0.28, u * 0.08);
+    eye(c, x - bw * 0.06, y - bh * 0.25, u * 0.22);
+    eye(c, x + bw * 0.22, y - bh * 0.25, u * 0.22);
+    mouth(c, x - bw * 0.06, y - bh * 0.02, bw * 0.3, u * 0.08);
     horns(c, x + bw * 0.08, y - bh * 0.35, u * 0.6);
   },
 
@@ -326,8 +442,10 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     g.fillRect(x + bw * 0.5, y - bh * 0.2, u * 0.4, bh * 0.55);
     wings(c, y - bh * 0.1, 0.8);
     // Body with a chest light and panel lines.
-    g.fillStyle(primary, 1);
+    g.fillStyle(shade(primary, -18), 1);
     g.fillRoundedRect(x - bw / 2, y - bh / 2, bw, bh, u * 0.3);
+    g.fillStyle(primary, 1);
+    g.fillRoundedRect(x - bw / 2 + u * 0.06, y - bh / 2 + u * 0.06, bw - u * 0.12, bh * 0.55, u * 0.25);
     g.lineStyle(Math.max(2, u * 0.06), DARK, 0.35);
     g.strokeRoundedRect(x - bw / 2 + u * 0.15, y - bh / 2 + u * 0.15, bw - u * 0.3, bh - u * 0.3, u * 0.25);
     g.fillStyle(accent, 1);
@@ -378,8 +496,7 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
       g.fillTriangle(cx, cy + u * 0.35, cx + side * u * 0.9, cy + u * 0.55, cx + side * u * 0.5, cy);
     }
     // Flat shell.
-    g.fillStyle(primary, 1);
-    g.fillEllipse(x, y, bw, bh * 0.8);
+    bodyEllipse(c, x, y, bw, bh * 0.8);
     g.fillStyle(secondary, 0.6);
     g.fillEllipse(x, y + bh * 0.1, bw * 0.7, bh * 0.4);
     spikes(c, x, y - bh * 0.4, bw * 0.6, 0.3);
@@ -404,20 +521,20 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
       g.lineBetween(lx, y + bh * 0.35, lx, y + bh * 0.7);
       g.lineBetween(lx - u * 0.25, y + bh * 0.7, lx + u * 0.25, y + bh * 0.7);
     }
-    g.fillStyle(primary, 1);
-    g.fillEllipse(x, y, bw, bh);
+    bodyEllipse(c, x, y, bw, bh);
     belly(c);
     spikes(c, x, y - bh / 2, bw * 0.5);
     // Head with a beak and crest.
-    const r = u * 0.65;
+    const r = u * 0.75;
     const hx = x + bw * 0.2;
     const hy = y - bh / 2 - r * 0.3;
-    g.fillStyle(secondary, 1);
     for (let i = 0; i < 1 + c.genome.parts.horns; i++) {
-      g.fillTriangle(hx - r * 0.3 + i * r * 0.25, hy - r * 0.7, hx + i * r * 0.25, hy - r * 0.7, hx - r * 0.5 + i * r * 0.3, hy - r * 1.6);
+      plate(c, hx - r * 0.2 + i * r * 0.25, hy - r * 0.6, r * 0.35, r * 0.9, -r * 0.3 + i * r * 0.1);
     }
-    g.fillStyle(primary, 1);
+    g.fillStyle(shade(primary, -18), 1);
     g.fillCircle(hx, hy, r);
+    g.fillStyle(primary, 1);
+    g.fillCircle(hx - r * 0.06, hy - r * 0.08, r * 0.92);
     g.fillStyle(accent, 1);
     g.fillTriangle(hx + r * 0.6, hy - r * 0.15, hx + r * 0.6, hy + r * 0.35, hx + r * 1.5, hy + r * 0.15);
     eye(c, hx + r * 0.15, hy - r * 0.2, r * 0.28);
@@ -426,6 +543,8 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
   blob(c) {
     const { g, x, y, bw, bh, u, primary, secondary } = c;
     // Wobbly body from overlapping circles, plus drips.
+    g.fillStyle(shade(primary, -15), 1);
+    g.fillEllipse(x, y + bh * 0.12, bw * 1.02, bh * 0.88);
     g.fillStyle(primary, 1);
     g.fillEllipse(x, y + bh * 0.1, bw, bh * 0.85);
     g.fillCircle(x - bw * 0.25, y - bh * 0.15, bh * 0.35);
@@ -464,23 +583,22 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     }
     wings(c, y - bh * 0.2, 0.7);
     for (const p of pts) {
-      g.fillStyle(primary, 1);
+      g.fillStyle(shade(primary, -18), 1);
       g.fillCircle(p.px, p.py, p.r);
+      g.fillStyle(primary, 1);
+      g.fillCircle(p.px - p.r * 0.06, p.py - p.r * 0.08, p.r * 0.9);
     }
     for (const p of pts) {
       g.fillStyle(secondary, 1);
       g.fillCircle(p.px, p.py + p.r * 0.3, p.r * 0.5);
     }
-    // Spikes along the top of the curve.
-    if (c.genome.parts.spikes > 0) {
-      g.fillStyle(c.accent, 1);
-      for (let i = 0; i < c.genome.parts.spikes; i++) {
-        const p = pts[Math.round(((i + 1) / (c.genome.parts.spikes + 1)) * (n - 1))]!;
-        g.fillTriangle(p.px - u * 0.15, p.py - p.r + u * 0.05, p.px + u * 0.15, p.py - p.r + u * 0.05, p.px, p.py - p.r - u * 0.5);
-      }
+    // Crystal plates along the top of the curve.
+    for (let i = 0; i < c.genome.parts.spikes; i++) {
+      const p = pts[Math.round(((i + 1) / (c.genome.parts.spikes + 1)) * (n - 1))]!;
+      plate(c, p.px, p.py - p.r + u * 0.08, u * 0.4, u * 0.6);
     }
     const last = pts[n - 1]!;
-    const r = u * 0.6;
+    const r = u * 0.7;
     const heads = c.genome.parts.heads;
     for (let i = 0; i < heads; i++) {
       const hy = last.py - r * 0.6 - i * r * 1.3;
@@ -519,7 +637,7 @@ export function drawSilhouette(g: G, genome: Genome, x: number, y: number, scale
     ...genome,
     shiny: false,
     alignment: 'guardian',
-    palette: { primary: '#2b2b3d', secondary: '#2b2b3d', accent: '#2b2b3d', glow: '#000000' },
+    palette: { primary: '#3d4a6b', secondary: '#3d4a6b', accent: '#3d4a6b', glow: '#000000' },
   };
   drawKaiju(g, dark, x, y, scale, false);
 }

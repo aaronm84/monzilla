@@ -58,8 +58,8 @@ describe('genome', () => {
     const g = genomeFromSeed(3, { alignment: 'guardian' });
     const v = genomeFromSeed(3, { alignment: 'villain' });
     expect(g.palette.glow).not.toBe(v.palette.glow);
-    expect(g.palette.accent).toBe('#ffffff');
-    expect(v.palette.accent).toBe('#ff1744');
+    expect(g.palette.primary).not.toBe(v.palette.primary);
+    expect(v.palette.accent).not.toBe(g.palette.accent);
   });
   it('has 70 species: ten kinds by seven types', () => {
     expect(allSpeciesKeys()).toHaveLength(70);
@@ -194,7 +194,7 @@ describe('eggs', () => {
 
 describe('roster', () => {
   it('regulars are stable and keep their overrides', () => {
-    const t = rosterById('tridorah')!;
+    const t = rosterById('pyronyx')!;
     const a = rosterGenome(t);
     const b = rosterGenome(t);
     expect(a).toEqual(b);
@@ -202,14 +202,14 @@ describe('roster', () => {
     expect(a.kind).toBe('dragon');
     expect(a.alignment).toBe('villain');
   });
-  it('a stormy day can bring Tridorah', () => {
+  it('a stormy day can bring Pyronyx', () => {
     let seen = false;
     for (let s = 0; s < 40 && !seen; s++) {
       const v = generateVillain(new Rng(s), { weather: 'storm', biome: 'meadow', guardianStatTotal: 100 });
-      if (v.rosterId === 'tridorah') {
+      if (v.rosterId === 'pyronyx') {
         seen = true;
         expect(v.isBoss).toBe(true);
-        expect(v.name).toBe('Tridorah');
+        expect(v.name).toBe('Pyronyx');
       }
     }
     expect(seen).toBe(true);
@@ -225,11 +225,11 @@ describe('save', () => {
     expect(s?.kaiju).toEqual([]);
     expect(s?.version).toBe(2);
   });
-  it('starts with Ember the lizard', () => {
+  it('starts with Tidalon the lizard', () => {
     const s = newMemberSave('m', 'T', 'seed');
-    expect(s.kaiju[0]?.name).toBe('Ember');
+    expect(s.kaiju[0]?.name).toBe('Tidalon');
     expect(s.kaiju[0]?.genome.kind).toBe('lizard');
-    expect(Object.keys(s.dex)).toEqual(['lizard:fire']);
+    expect(Object.keys(s.dex)).toEqual(['lizard:water']);
   });
   it('gives v1 genomes a kind and rekeys the dex', () => {
     const v1 = newMemberSave('m', 'T', 'seed') as unknown as { version: number; kaiju: { genome: Record<string, unknown> }[]; dex: Record<string, { key: string; genome: Record<string, unknown>; count: number; firstSeen: number }> };
@@ -239,13 +239,13 @@ describe('save', () => {
       ...v1,
       version: 1,
       kaiju: [{ ...v1.kaiju[0], genome: g }],
-      dex: { 'guardian:fire:round': { key: 'guardian:fire:round', genome: g, count: 3, firstSeen: 5 } },
+      dex: { 'guardian:water:round': { key: 'guardian:water:round', genome: g, count: 3, firstSeen: 5 } },
     };
     const s = migrateSave(old)!;
     expect(s.kaiju[0]?.genome.kind).toBeDefined();
     const keys = Object.keys(s.dex);
     expect(keys).toHaveLength(1);
-    expect(keys[0]).toMatch(/^[a-z]+:fire$/);
+    expect(keys[0]).toMatch(/^[a-z]+:water$/);
     expect(s.dex[keys[0]!]?.count).toBe(3);
     expect(s.dex[keys[0]!]?.seenGuardian).toBe(true);
   });

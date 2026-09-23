@@ -85,7 +85,7 @@ export class BuildScene extends Phaser.Scene {
     });
 
     // Top bar
-    panel(this, L.pad, L.pad, L.w - L.pad * 2, L.btn * 0.8 + L.pad, COLORS.panel, 0.75);
+    panel(this, L.pad, L.pad, L.w - L.pad * 2, L.btn * 0.8 + L.pad, COLORS.panel, 0.94);
     const topY = L.pad + (L.btn * 0.8 + L.pad) / 2;
     makeButton(this, L.pad * 2 + L.btn * 0.4, topY, {
       icon: '🏠', label: 'Back home', size: L.btn * 0.8, settings: save.settings, onTap: () => this.scene.start('Island'),
