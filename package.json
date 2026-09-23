@@ -1,0 +1,20 @@
+{
+  "name": "monzilla",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A kaiju sanctuary game for kids: raise, build, protect, collect.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "build": "npm run build -w packages/core && npm run build -w apps/web",
+    "test": "npm run test -w packages/core",
+    "typecheck": "npm run typecheck -w packages/core && npm run typecheck -w apps/web",
+    "preview": "npm run preview -w apps/web"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,254 @@
+import Phaser from 'phaser';
+import {
+  Rng,
+  TYPE_INFO,
+  WEATHER_INFO,
+  addFragment,
+  afterBattle,
+  attack,
+  biomeCounts,
+  computeDamage,
+  dayIndex,
+  forkSeed,
+  generateIsland,
+  generateVillain,
+  kaijuStats,
+  movesFor,
+  recordInDex,
+  rewardFor,
+  startBattle,
+  statTotal,
+  weatherFor,
+  type Battle,
+  type Kaiju,
+  type Move,
+} from '@monzilla/core';
+import { getStore } from '../game/ctx.js';
+import { sfx } from '../game/audio.js';
+import { COLORS, FONT, bob, burst, floatText, handleResize, label, layoutFor, makeBar, makeButton, panel, type Bar, type Button } from '../game/ui.js';
+import { drawKaiju } from '../render/kaiju.js';
+
+/**
+ * One villain, one guardian, two or three big buttons. The villain's bar
+ * and the damage numbers on the buttons are the whole interface: he can
+ * work out the type chart by watching which number is bigger.
+ */
+export class BattleScene extends Phaser.Scene {
+  private battle!: Battle;
+  private guardianIndex = 0;
+  private villainGfx!: Phaser.GameObjects.Graphics;
+  private guardianGfx!: Phaser.GameObjects.Graphics;
+  private hpBar!: Bar;
+  private moveButtons: Button[] = [];
+  private busy = false;
+  private villainPos = { x: 0, y: 0 };
+  private guardianPos = { x: 0, y: 0 };
+
+  constructor() {
+    super('Battle');
+  }
+
+  create() {
+    handleResize(this);
+    const store = getStore(this);
+    const save = store.save;
+    const L = layoutFor(this);
+    if (save.kaiju.length === 0) return this.scene.start('Island');
+
+    // Resume or start today's fight.
+    const today = dayIndex();
+    const weather = weatherFor(save.seed, today);
+    if (save.activeBattle) {
+      this.battle = save.activeBattle;
+      this.guardianIndex = Math.max(0, save.kaiju.findIndex((k) => k.id === this.battle.guardianId));
+    } else {
+      const island = generateIsland(save.seed);
+      const biome = biomeCounts(island)[0]?.biome ?? 'meadow';
+      const strongest = Math.max(...save.kaiju.map((k) => statTotal(kaijuStats(k))));
+      const villain = generateVillain(new Rng(forkSeed(save.seed, `villain:${today}`)), {
+        weather,
+        biome,
+        guardianStatTotal: strongest,
+      });
+      this.guardianIndex = 0;
+      this.battle = startBattle(`b_${today}`, villain, save.kaiju[0]!, weather);
+      store.update((s) => ({ ...s, activeBattle: this.battle, lastVillainDay: today, dex: recordInDex(s.dex, villain.genome) }));
+    }
+    const guardian = save.kaiju[this.guardianIndex]!;
+    const villain = this.battle.villain;
+
+    // Backdrop
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x1a0b2e, 0x1a0b2e, 0x0d1b2a, 0x0d1b2a, 1, 1, 1, 1);
+    bg.fillRect(0, 0, L.w, L.h);
+
+    // Top: home, weather, villain bar with number
+    const topH = L.btn * 0.8 + L.pad;
+    panel(this, L.pad, L.pad, L.w - L.pad * 2, topH, COLORS.panel, 0.75);
+    const topY = L.pad + topH / 2;
+    makeButton(this, L.pad * 2 + L.btn * 0.4, topY, {
+      icon: '🏠', label: 'Pause and go home', size: L.btn * 0.8, settings: save.settings, onTap: () => this.scene.start('Island'),
+    });
+    this.add.text(L.pad * 2 + L.btn * 0.9 + 10, topY, WEATHER_INFO[weather].icon, { fontSize: '34px', fontFamily: FONT }).setOrigin(0, 0.5);
+    const barX = L.pad * 2 + L.btn * 0.9 + 70;
+    const barW = L.w - barX - L.pad * 2;
+    this.hpBar = makeBar(this, barX, topY - 16, barW, 32, {
+      icon: TYPE_INFO[villain.genome.type].icon,
+      color: 0xd500f9,
+      value: this.battle.villainHp,
+      max: villain.maxHp,
+      settings: save.settings,
+    });
+
+    // Arena
+    const bottomH = L.btn + L.pad * 2 + (save.kaiju.length > 1 ? L.btn * 0.7 + 12 : 0);
+    const arenaTop = L.pad * 2 + topH;
+    const arenaH = L.h - arenaTop - bottomH;
+    const floorY = arenaTop + arenaH * 0.68;
+    const ground = this.add.graphics();
+    ground.fillStyle(0x223044, 1);
+    ground.fillEllipse(L.w / 2, floorY + 30, L.w * 1.2, arenaH * 0.5);
+
+    const scale = L.compact ? 0.85 : 1.1;
+    this.guardianPos = { x: L.w * 0.27, y: floorY };
+    this.villainPos = { x: L.w * 0.73, y: floorY - 20 };
+
+    this.villainGfx = this.add.graphics();
+    drawKaiju(this.villainGfx, villain.genome, this.villainPos.x, this.villainPos.y, scale);
+    bob(this, this.villainGfx, save.settings, 4);
+    // Villain sprites face left: flip by drawing then scaling around its position.
+    this.villainGfx.setScale(-1, 1).setX(this.villainPos.x * 2);
+
+    this.guardianGfx = this.add.graphics();
+    drawKaiju(this.guardianGfx, guardian.genome, this.guardianPos.x, this.guardianPos.y, scale);
+    bob(this, this.guardianGfx, save.settings, 5);
+
+    label(this, this.villainPos.x, arenaTop + 20, villain.name, 22, COLORS.muted);
+    if (guardian.name) label(this, this.guardianPos.x, arenaTop + 20, guardian.name, 22, COLORS.muted);
+
+    // Guardian picker (only when there is a choice)
+    if (save.kaiju.length > 1) {
+      const size = L.btn * 0.7;
+      const gap = 12;
+      const totalW = save.kaiju.length * size + (save.kaiju.length - 1) * gap;
+      const y = L.h - L.pad * 2 - L.btn - size / 2;
+      save.kaiju.forEach((k, i) => {
+        const b = makeButton(this, L.w / 2 - totalW / 2 + size / 2 + i * (size + gap), y, {
+          icon: TYPE_INFO[k.genome.type].icon, label: k.name || `Kaiju ${i + 1}`, size, settings: save.settings,
+          onTap: () => {
+            if (this.busy) return;
+            this.battle = { ...this.battle, guardianId: k.id };
+            store.update((s) => ({ ...s, activeBattle: this.battle }));
+            this.scene.restart();
+          },
+        });
+        b.setGlow(i === this.guardianIndex);
+      });
+    }
+
+    // Move buttons with the damage number they will do right now.
+    const moves = movesFor(guardian);
+    const gap = L.compact ? 12 : 20;
+    const totalW = moves.length * L.btn + (moves.length - 1) * gap;
+    const y = L.h - L.pad - L.btn / 2;
+    this.moveButtons = moves.map((move, i) => {
+      const { damage, effectiveness } = computeDamage(guardian, move, villain, weather);
+      const eff = effectiveness >= 2 ? '⬆️' : effectiveness <= 0.5 ? '⬇️' : '';
+      return makeButton(this, L.w / 2 - totalW / 2 + L.btn / 2 + i * (L.btn + gap), y, {
+        icon: move.icon,
+        label: move.label,
+        sub: `${damage}${eff}`,
+        size: L.btn,
+        color: effectiveness >= 2 ? 0x2e7d32 : COLORS.panelLight,
+        settings: save.settings,
+        disabled: this.battle.status !== 'active',
+        onTap: () => this.doMove(move, guardian),
+      });
+    });
+    const best = moves.reduce((a, b) => (computeDamage(guardian, b, villain, weather).damage > computeDamage(guardian, a, villain, weather).damage ? b : a));
+    this.moveButtons[moves.indexOf(best)]?.setGlow(true);
+
+    if (this.battle.status === 'won') this.showReward();
+  }
+
+  private doMove(move: Move, guardian: Kaiju) {
+    if (this.busy || this.battle.status !== 'active') return;
+    this.busy = true;
+    const store = getStore(this);
+    const save = store.save;
+    const result = attack(this.battle, guardian, move, save.blocks, save.memberId);
+    this.battle = result.battle;
+    store.update((s) => ({ ...s, activeBattle: this.battle, blocks: result.blocks }));
+
+    // Guardian lunges, villain flinches, number pops.
+    if (move.id === 'roar') sfx.roar();
+    else if (move.id === 'stomp') sfx.stomp();
+    else sfx.hit(result.turn.effectiveness);
+    if (!save.settings.reduceMotion) {
+      this.tweens.add({ targets: this.guardianGfx, x: 60, duration: 140, yoyo: true, ease: 'Quad.easeOut' });
+      this.tweens.add({ targets: this.villainGfx, x: this.villainGfx.x + 30, duration: 90, yoyo: true, repeat: 2, delay: 140 });
+    }
+    const color = result.turn.effectiveness >= 2 ? '#69f0ae' : result.turn.effectiveness <= 0.5 ? '#b0bec5' : '#ffffff';
+    floatText(this, this.villainPos.x, this.villainPos.y - 120, `-${result.turn.damage}`, color, save.settings, result.turn.effectiveness >= 2 ? 48 : 36);
+    this.time.delayedCall(200, () => this.hpBar.setValue(this.battle.villainHp));
+
+    if (this.battle.status === 'won') {
+      this.time.delayedCall(700, () => this.showReward());
+      return;
+    }
+
+    // Villain's turn: maybe a block gets stomped. Shown, never punished.
+    this.time.delayedCall(650, () => {
+      if (result.turn.brokenBlock) {
+        sfx.crunch();
+        this.cameras.main.shake(save.settings.reduceMotion ? 0 : 150, 0.004);
+        floatText(this, this.guardianPos.x, this.guardianPos.y - 120, '🧱💥', '#ffffff', save.settings, 40);
+      } else {
+        floatText(this, this.villainPos.x, this.villainPos.y - 80, '😤', '#ffffff', save.settings, 34);
+      }
+      this.busy = false;
+    });
+  }
+
+  private showReward() {
+    const store = getStore(this);
+    const save = store.save;
+    const L = layoutFor(this);
+    const villain = this.battle.villain;
+    const reward = rewardFor(villain);
+    for (const b of this.moveButtons) b.setDisabledState(true);
+
+    // Apply once: the battle is cleared from the save here.
+    if (save.activeBattle) {
+      store.update((s) => ({
+        ...s,
+        activeBattle: null,
+        stars: s.stars + reward.stars,
+        eggs: addFragment(s.eggs, reward.fragmentType, forkSeed(s.seed, this.battle.id)),
+        kaiju: s.kaiju.map((k) => (k.id === this.battle.guardianId ? afterBattle(k) : k)),
+      }));
+    }
+
+    sfx.sparkle();
+    burst(this, this.villainPos.x, this.villainPos.y, 0xd500f9, save.settings, 30);
+    if (!save.settings.reduceMotion) {
+      this.tweens.add({ targets: this.villainGfx, y: -400, alpha: 0, duration: 900, ease: 'Quad.easeIn' });
+    } else {
+      this.villainGfx.setVisible(false);
+    }
+
+    const w = Math.min(420, L.w - L.pad * 2);
+    const h = 230;
+    const x = L.w / 2 - w / 2;
+    const y = L.h / 2 - h / 2 - 40;
+    const c = this.add.container(0, 0).setDepth(600);
+    c.add(panel(this, x, y, w, h));
+    c.add(label(this, L.w / 2, y + 40, '🏆', 48));
+    c.add(label(this, L.w / 2, y + 100, `⭐ +${reward.stars}     🥚 ${TYPE_INFO[reward.fragmentType].icon} +1`, 28));
+    c.add(
+      makeButton(this, L.w / 2, y + h - 50, {
+        icon: '🏠', label: 'Back home', size: L.btn * 0.8, settings: save.settings, onTap: () => this.scene.start('Island'),
+      }),
+    );
+  }
+}

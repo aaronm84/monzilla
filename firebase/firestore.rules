@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isFamilyMember(familyId) {
+      return signedIn() && request.auth.uid in get(/databases/$(database)/documents/families/$(familyId)).data.memberIds;
+    }
+
+    // A family: readable by its members. Created by its first member.
+    match /families/{familyId} {
+      allow read: if isFamilyMember(familyId);
+      allow create: if signedIn() && request.auth.uid == familyId && request.auth.uid in request.resource.data.memberIds;
+      allow update: if isFamilyMember(familyId);
+
+      // Each member's island. Family members can read everyone's (visiting);
+      // only the owner writes their own.
+      match /members/{memberId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if signedIn() && request.auth.uid == memberId && isFamilyMember(familyId);
+
+        // Later: guests may append validated visit records and gifts here.
+        match /visitors/{visitorId} {
+          allow read: if isFamilyMember(familyId);
+          allow create: if isFamilyMember(familyId) && request.auth.uid == visitorId;
+        }
+        match /gifts/{giftId} {
+          allow read: if isFamilyMember(familyId);
+          allow create: if isFamilyMember(familyId)
+            && request.resource.data.from == request.auth.uid
+            && request.resource.data.kind in ['block', 'fragment', 'sticker'];
+        }
+      }
+
+      // Team fights: anyone in the family can add one contribution per turn.
+      match /fights/{fightId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId);
+        match /contributions/{contributionId} {
+          allow read: if isFamilyMember(familyId);
+          allow create: if isFamilyMember(familyId) && request.resource.data.memberId == request.auth.uid;
+        }
+      }
+    }
+  }
+}
