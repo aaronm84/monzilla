@@ -77,7 +77,6 @@ export class IslandScene extends Phaser.Scene {
     const tiles = this.add.graphics();
     drawIslandTiles(tiles, island, view);
     drawBlocks(tiles, save.blocks, view);
-    tiles.setAlpha(0.95);
 
     // Sky gradient on top of the island so the kaiju stands out.
     const sky = this.add.graphics();

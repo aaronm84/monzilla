@@ -16,13 +16,13 @@ export const BIOME_TYPE: Record<Biome, KaijuType> = {
 };
 
 export const BIOME_INFO: Record<Biome, { color: string; icon: string }> = {
-  beach: { color: '#f5deb3', icon: '🏖️' },
-  meadow: { color: '#9ccc65', icon: '🌾' },
-  forest: { color: '#388e3c', icon: '🌲' },
-  volcano: { color: '#6d4c41', icon: '🌋' },
-  ice: { color: '#e1f5fe', icon: '🧊' },
-  swamp: { color: '#827717', icon: '🐸' },
-  cloud: { color: '#ede7f6', icon: '☁️' },
+  beach: { color: '#f3e2b3', icon: '🏖️' },
+  meadow: { color: '#a5d86a', icon: '🌾' },
+  forest: { color: '#5fae5a', icon: '🌲' },
+  volcano: { color: '#8d6e63', icon: '🌋' },
+  ice: { color: '#dff4ff', icon: '🧊' },
+  swamp: { color: '#9aa34a', icon: '🐸' },
+  cloud: { color: '#f3eeff', icon: '☁️' },
 };
 
 export type Terrain = Biome | 'water';
