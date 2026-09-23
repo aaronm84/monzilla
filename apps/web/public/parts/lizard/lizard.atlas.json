@@ -1,232 +1,232 @@
 {
-  "frames": {
-    "body_baby": {
-      "frame": {
-        "x": 8,
-        "y": 8,
-        "w": 359,
-        "h": 589
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 359,
-        "h": 589
-      },
-      "sourceSize": {
-        "w": 359,
-        "h": 589
-      }
-    },
-    "body_baby_detail": {
-      "frame": {
-        "x": 375,
-        "y": 8,
-        "w": 359,
-        "h": 589
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 359,
-        "h": 589
-      },
-      "sourceSize": {
-        "w": 359,
-        "h": 589
-      }
-    },
-    "body_grown": {
-      "frame": {
-        "x": 742,
-        "y": 8,
-        "w": 359,
-        "h": 616
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 359,
-        "h": 616
-      },
-      "sourceSize": {
-        "w": 359,
-        "h": 616
-      }
-    },
-    "body_grown_detail": {
-      "frame": {
-        "x": 1109,
-        "y": 8,
-        "w": 359,
-        "h": 616
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 359,
-        "h": 616
-      },
-      "sourceSize": {
-        "w": 359,
-        "h": 616
-      }
-    },
-    "tail_stub": {
-      "frame": {
-        "x": 1476,
-        "y": 8,
-        "w": 116,
-        "h": 90
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 116,
-        "h": 90
-      },
-      "sourceSize": {
-        "w": 116,
-        "h": 90
-      }
-    },
-    "tail_long": {
-      "frame": {
-        "x": 8,
-        "y": 632,
-        "w": 244,
-        "h": 116
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 244,
-        "h": 116
-      },
-      "sourceSize": {
-        "w": 244,
-        "h": 116
-      }
-    },
-    "tail_club": {
-      "frame": {
-        "x": 260,
-        "y": 632,
-        "w": 218,
-        "h": 128
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 218,
-        "h": 128
-      },
-      "sourceSize": {
-        "w": 218,
-        "h": 128
-      }
-    },
-    "tail_fan": {
-      "frame": {
-        "x": 486,
-        "y": 632,
-        "w": 192,
-        "h": 192
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 192,
-        "h": 192
-      },
-      "sourceSize": {
-        "w": 192,
-        "h": 192
-      }
-    },
-    "spike": {
-      "frame": {
-        "x": 686,
-        "y": 632,
-        "w": 90,
-        "h": 141
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 90,
-        "h": 141
-      },
-      "sourceSize": {
-        "w": 90,
-        "h": 141
-      }
-    },
-    "horn": {
-      "frame": {
-        "x": 784,
-        "y": 632,
-        "w": 64,
-        "h": 122
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 64,
-        "h": 122
-      },
-      "sourceSize": {
-        "w": 64,
-        "h": 122
-      }
-    },
-    "face_villain": {
-      "frame": {
-        "x": 856,
-        "y": 632,
-        "w": 240,
-        "h": 218
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 240,
-        "h": 218
-      },
-      "sourceSize": {
-        "w": 240,
-        "h": 218
-      }
-    }
+ "frames": {
+  "body_baby": {
+   "frame": {
+    "x": 8,
+    "y": 8,
+    "w": 136,
+    "h": 104
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 104
+   }
   },
-  "meta": {
-    "image": "lizard.png",
-    "size": {
-      "w": 1600,
-      "h": 858
-    },
-    "scale": "1"
+  "body_baby_detail": {
+   "frame": {
+    "x": 152,
+    "y": 8,
+    "w": 136,
+    "h": 104
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 104
+   }
+  },
+  "body_grown": {
+   "frame": {
+    "x": 296,
+    "y": 8,
+    "w": 185,
+    "h": 127
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 185,
+    "h": 127
+   },
+   "sourceSize": {
+    "w": 185,
+    "h": 127
+   }
+  },
+  "body_grown_detail": {
+   "frame": {
+    "x": 489,
+    "y": 8,
+    "w": 185,
+    "h": 127
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 185,
+    "h": 127
+   },
+   "sourceSize": {
+    "w": 185,
+    "h": 127
+   }
+  },
+  "tail_stub": {
+   "frame": {
+    "x": 682,
+    "y": 8,
+    "w": 43,
+    "h": 53
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 43,
+    "h": 53
+   },
+   "sourceSize": {
+    "w": 43,
+    "h": 53
+   }
+  },
+  "tail_long": {
+   "frame": {
+    "x": 733,
+    "y": 8,
+    "w": 58,
+    "h": 71
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 58,
+    "h": 71
+   },
+   "sourceSize": {
+    "w": 58,
+    "h": 71
+   }
+  },
+  "tail_club": {
+   "frame": {
+    "x": 799,
+    "y": 8,
+    "w": 52,
+    "h": 67
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 52,
+    "h": 67
+   },
+   "sourceSize": {
+    "w": 52,
+    "h": 67
+   }
+  },
+  "tail_fan": {
+   "frame": {
+    "x": 859,
+    "y": 8,
+    "w": 57,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 57,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 57,
+    "h": 74
+   }
+  },
+  "spike": {
+   "frame": {
+    "x": 924,
+    "y": 8,
+    "w": 52,
+    "h": 47
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 52,
+    "h": 47
+   },
+   "sourceSize": {
+    "w": 52,
+    "h": 47
+   }
+  },
+  "horn": {
+   "frame": {
+    "x": 984,
+    "y": 8,
+    "w": 28,
+    "h": 39
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 28,
+    "h": 39
+   },
+   "sourceSize": {
+    "w": 28,
+    "h": 39
+   }
+  },
+  "face_villain": {
+   "frame": {
+    "x": 8,
+    "y": 143,
+    "w": 69,
+    "h": 38
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 38
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 38
+   }
   }
+ },
+ "meta": {
+  "image": "lizard.png",
+  "size": {
+   "w": 1024,
+   "h": 189
+  },
+  "scale": "1"
+ }
 }

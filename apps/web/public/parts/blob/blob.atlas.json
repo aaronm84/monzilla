@@ -1,152 +1,212 @@
 {
-  "frames": {
-    "body_baby": {
-      "frame": {
-        "x": 8,
-        "y": 8,
-        "w": 300,
-        "h": 269
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 300,
-        "h": 269
-      },
-      "sourceSize": {
-        "w": 300,
-        "h": 269
-      }
-    },
-    "body_baby_detail": {
-      "frame": {
-        "x": 316,
-        "y": 8,
-        "w": 300,
-        "h": 269
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 300,
-        "h": 269
-      },
-      "sourceSize": {
-        "w": 300,
-        "h": 269
-      }
-    },
-    "body_grown": {
-      "frame": {
-        "x": 624,
-        "y": 8,
-        "w": 400,
-        "h": 359
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 400,
-        "h": 359
-      },
-      "sourceSize": {
-        "w": 400,
-        "h": 359
-      }
-    },
-    "body_grown_detail": {
-      "frame": {
-        "x": 1032,
-        "y": 8,
-        "w": 400,
-        "h": 359
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 400,
-        "h": 359
-      },
-      "sourceSize": {
-        "w": 400,
-        "h": 359
-      }
-    },
-    "drip": {
-      "frame": {
-        "x": 1440,
-        "y": 8,
-        "w": 103,
-        "h": 90
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 103,
-        "h": 90
-      },
-      "sourceSize": {
-        "w": 103,
-        "h": 90
-      }
-    },
-    "nub": {
-      "frame": {
-        "x": 8,
-        "y": 375,
-        "w": 64,
-        "h": 77
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 64,
-        "h": 77
-      },
-      "sourceSize": {
-        "w": 64,
-        "h": 77
-      }
-    },
-    "face_villain": {
-      "frame": {
-        "x": 80,
-        "y": 375,
-        "w": 212,
-        "h": 192
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 212,
-        "h": 192
-      },
-      "sourceSize": {
-        "w": 212,
-        "h": 192
-      }
-    }
+ "frames": {
+  "body_baby": {
+   "frame": {
+    "x": 8,
+    "y": 8,
+    "w": 120,
+    "h": 96
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 96
+   },
+   "sourceSize": {
+    "w": 120,
+    "h": 96
+   }
   },
-  "meta": {
-    "image": "blob.png",
-    "size": {
-      "w": 1600,
-      "h": 575
-    },
-    "scale": "1"
+  "body_baby_detail": {
+   "frame": {
+    "x": 136,
+    "y": 8,
+    "w": 120,
+    "h": 96
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 96
+   },
+   "sourceSize": {
+    "w": 120,
+    "h": 96
+   }
+  },
+  "body_grown": {
+   "frame": {
+    "x": 264,
+    "y": 8,
+    "w": 176,
+    "h": 129
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 176,
+    "h": 129
+   },
+   "sourceSize": {
+    "w": 176,
+    "h": 129
+   }
+  },
+  "body_grown_detail": {
+   "frame": {
+    "x": 448,
+    "y": 8,
+    "w": 176,
+    "h": 129
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 176,
+    "h": 129
+   },
+   "sourceSize": {
+    "w": 176,
+    "h": 129
+   }
+  },
+  "nub": {
+   "frame": {
+    "x": 632,
+    "y": 8,
+    "w": 33,
+    "h": 37
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 33,
+    "h": 37
+   },
+   "sourceSize": {
+    "w": 33,
+    "h": 37
+   }
+  },
+  "trail": {
+   "frame": {
+    "x": 673,
+    "y": 8,
+    "w": 65,
+    "h": 57
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 65,
+    "h": 57
+   },
+   "sourceSize": {
+    "w": 65,
+    "h": 57
+   }
+  },
+  "bubbles": {
+   "frame": {
+    "x": 746,
+    "y": 8,
+    "w": 47,
+    "h": 47
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 47,
+    "h": 47
+   },
+   "sourceSize": {
+    "w": 47,
+    "h": 47
+   }
+  },
+  "drip": {
+   "frame": {
+    "x": 801,
+    "y": 8,
+    "w": 45,
+    "h": 59
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 45,
+    "h": 59
+   },
+   "sourceSize": {
+    "w": 45,
+    "h": 59
+   }
+  },
+  "crystal_nub": {
+   "frame": {
+    "x": 854,
+    "y": 8,
+    "w": 46,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 46,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 46,
+    "h": 50
+   }
+  },
+  "face_villain": {
+   "frame": {
+    "x": 908,
+    "y": 8,
+    "w": 62,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 62,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 62,
+    "h": 60
+   }
   }
+ },
+ "meta": {
+  "image": "blob.png",
+  "size": {
+   "w": 1024,
+   "h": 145
+  },
+  "scale": "1"
+ }
 }

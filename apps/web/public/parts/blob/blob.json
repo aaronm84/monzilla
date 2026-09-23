@@ -1,216 +1,232 @@
 {
-  "kind": "blob",
-  "atlas": "blob",
-  "unit": 128,
-  "displayName": "Blob",
-  "bodies": {
-    "baby": {
-      "frame": "body_baby",
-      "detail": "body_baby_detail",
-      "size": [
-        1.8,
-        1.5
-      ],
-      "pivot": [
-        0.5,
-        0.6
-      ],
-      "attach": {
-        "head": [
-          [
-            0.04,
-            -0.05
-          ]
-        ],
-        "tail": [
-          -0.7,
-          0.25
-        ],
-        "spikes": [
-          0,
-          -0.7
-        ],
-        "face": [
-          0.04,
-          -0.05
-        ]
-      },
-      "anchors": {
-        "head": [
-          0,
-          -0.44999999999999996
-        ],
-        "mouth": [
-          0.05,
-          0.15
-        ],
-        "back": [
-          0,
-          -0.75
-        ],
-        "feet": [
-          0,
-          0.85
-        ],
-        "attackOrigin": [
-          0.9,
-          0
-        ],
-        "effectOrigin": [
-          0,
-          -0.2
-        ]
-      },
-      "bounds": {
-        "selection": [
-          2.07,
-          1.9500000000000002
-        ],
-        "selectionOffset": [
-          0,
-          -0.1
-        ],
-        "footprint": [
-          1.8,
-          0.4
-        ]
-      }
-    },
-    "grown": {
-      "frame": "body_grown",
-      "detail": "body_grown_detail",
-      "size": [
-        2.4,
-        2
-      ],
-      "pivot": [
-        0.5,
-        0.6
-      ],
-      "attach": {
-        "head": [
-          [
-            0.04,
-            -0.05
-          ]
-        ],
-        "tail": [
-          -1,
-          0.25
-        ],
-        "spikes": [
-          0,
-          -0.95
-        ],
-        "face": [
-          0.04,
-          -0.05
-        ]
-      },
-      "anchors": {
-        "head": [
-          0,
-          -0.6
-        ],
-        "mouth": [
-          0.05,
-          0.15
-        ],
-        "back": [
-          0,
-          -1
-        ],
-        "feet": [
-          0,
-          1.1
-        ],
-        "attackOrigin": [
-          1.2,
-          0
-        ],
-        "effectOrigin": [
-          0,
-          -0.2
-        ]
-      },
-      "bounds": {
-        "selection": [
-          2.76,
-          2.6
-        ],
-        "selectionOffset": [
-          0,
-          -0.1
-        ],
-        "footprint": [
-          2.4,
-          0.4
-        ]
-      }
-    }
+ "kind": "blob",
+ "atlas": "blob",
+ "unit": 60,
+ "displayName": "Blob",
+ "source": "docs/concept/sprite-stress-test.png (extracted)",
+ "bodies": {
+  "baby": {
+   "frame": "body_baby",
+   "detail": "body_baby_detail",
+   "size": [
+    1.7,
+    1.28
+   ],
+   "pivot": [
+    0.5,
+    0.58
+   ],
+   "attach": {
+    "head": [
+     [
+      0.1,
+      -0.192
+     ]
+    ],
+    "wings": [
+     0,
+     -0.25
+    ],
+    "tail": [
+     -0.9,
+     0.24
+    ],
+    "spikes": [
+     0.0,
+     -0.8
+    ],
+    "horns": [
+     0.0,
+     -0.8
+    ],
+    "face": [
+     0.1,
+     -0.192
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.1,
+     -0.192
+    ],
+    "mouth": [
+     0.8,
+     -0.064
+    ],
+    "back": [
+     0.0,
+     -0.8
+    ],
+    "feet": [
+     0,
+     0.672
+    ],
+    "attackOrigin": [
+     1.0,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.16
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.0,
+     1.6
+    ],
+    "selectionOffset": [
+     0,
+     -0.128
+    ],
+    "footprint": [
+     1.8,
+     0.5
+    ]
+   }
   },
-  "parts": {
-    "tail.stub": {
-      "frame": "drip",
-      "pivot": [
-        1,
-        0.4
-      ],
-      "z": "behind",
-      "tint": "primary"
-    },
-    "tail.long": {
-      "frame": "drip",
-      "pivot": [
-        1,
-        0.4
-      ],
-      "z": "behind",
-      "tint": "primary",
-      "scale": 1.4
-    },
-    "tail.club": {
-      "frame": "drip",
-      "pivot": [
-        1,
-        0.4
-      ],
-      "z": "behind",
-      "tint": "primary"
-    },
-    "tail.fan": {
-      "frame": "drip",
-      "pivot": [
-        1,
-        0.4
-      ],
-      "z": "behind",
-      "tint": "primary",
-      "scale": 1.2
-    },
-    "spike": {
-      "frame": "nub",
-      "pivot": [
-        0.5,
-        1
-      ],
-      "z": "front",
-      "tint": "accent"
-    },
-    "face.villain": {
-      "frame": "face_villain",
-      "pivot": [
-        0.5,
-        0.5
-      ],
-      "z": "front",
-      "tint": "none"
-    }
+  "grown": {
+   "frame": "body_grown",
+   "detail": "body_grown_detail",
+   "size": [
+    2.49,
+    1.72
+   ],
+   "pivot": [
+    0.5,
+    0.58
+   ],
+   "attach": {
+    "head": [
+     [
+      0.147,
+      -0.258
+     ]
+    ],
+    "wings": [
+     0,
+     -0.25
+    ],
+    "tail": [
+     -1.32,
+     0.322
+    ],
+    "spikes": [
+     0.0,
+     -1.075
+    ],
+    "horns": [
+     0.0,
+     -1.075
+    ],
+    "face": [
+     0.147,
+     -0.258
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.147,
+     -0.258
+    ],
+    "mouth": [
+     1.174,
+     -0.086
+    ],
+    "back": [
+     0.0,
+     -1.075
+    ],
+    "feet": [
+     0,
+     0.903
+    ],
+    "attackOrigin": [
+     1.467,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.215
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.93,
+     2.15
+    ],
+    "selectionOffset": [
+     0,
+     -0.172
+    ],
+    "footprint": [
+     2.64,
+     0.5
+    ]
+   }
+  }
+ },
+ "parts": {
+  "tail.stub": {
+   "frame": "nub",
+   "pivot": [
+    0.9,
+    0.5
+   ],
+   "z": "behind",
+   "tint": "primary"
   },
-  "omit": [
-    "wings",
-    "horn",
-    "head"
-  ],
-  "motion": "wobble"
+  "tail.long": {
+   "frame": "trail",
+   "pivot": [
+    0.9,
+    0.5
+   ],
+   "z": "behind",
+   "tint": "primary"
+  },
+  "tail.club": {
+   "frame": "bubbles",
+   "pivot": [
+    0.9,
+    0.5
+   ],
+   "z": "behind",
+   "tint": "primary"
+  },
+  "tail.fan": {
+   "frame": "drip",
+   "pivot": [
+    0.9,
+    0.5
+   ],
+   "z": "behind",
+   "tint": "primary"
+  },
+  "spike": {
+   "frame": "crystal_nub",
+   "pivot": [
+    0.5,
+    1.0
+   ],
+   "z": "front",
+   "tint": "accent"
+  },
+  "face.villain": {
+   "frame": "face_villain",
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "z": "front",
+   "tint": "none"
+  }
+ },
+ "omit": [
+  "wings",
+  "horn",
+  "head",
+  "spike"
+ ],
+ "motion": "wobble"
 }

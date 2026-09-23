@@ -1,172 +1,232 @@
 {
-  "frames": {
-    "body_baby": {
-      "frame": {
-        "x": 8,
-        "y": 8,
-        "w": 328,
-        "h": 528
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 328,
-        "h": 528
-      },
-      "sourceSize": {
-        "w": 328,
-        "h": 528
-      }
-    },
-    "body_baby_detail": {
-      "frame": {
-        "x": 344,
-        "y": 8,
-        "w": 328,
-        "h": 528
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 328,
-        "h": 528
-      },
-      "sourceSize": {
-        "w": 328,
-        "h": 528
-      }
-    },
-    "body_grown": {
-      "frame": {
-        "x": 680,
-        "y": 8,
-        "w": 369,
-        "h": 536
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 369,
-        "h": 536
-      },
-      "sourceSize": {
-        "w": 369,
-        "h": 536
-      }
-    },
-    "body_grown_detail": {
-      "frame": {
-        "x": 1057,
-        "y": 8,
-        "w": 369,
-        "h": 536
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 369,
-        "h": 536
-      },
-      "sourceSize": {
-        "w": 369,
-        "h": 536
-      }
-    },
-    "thruster": {
-      "frame": {
-        "x": 1434,
-        "y": 8,
-        "w": 154,
-        "h": 103
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 154,
-        "h": 103
-      },
-      "sourceSize": {
-        "w": 154,
-        "h": 103
-      }
-    },
-    "spike": {
-      "frame": {
-        "x": 8,
-        "y": 552,
-        "w": 90,
-        "h": 141
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 90,
-        "h": 141
-      },
-      "sourceSize": {
-        "w": 90,
-        "h": 141
-      }
-    },
-    "antenna": {
-      "frame": {
-        "x": 106,
-        "y": 552,
-        "w": 52,
-        "h": 128
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 52,
-        "h": 128
-      },
-      "sourceSize": {
-        "w": 52,
-        "h": 128
-      }
-    },
-    "face_villain": {
-      "frame": {
-        "x": 166,
-        "y": 552,
-        "w": 254,
-        "h": 231
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 254,
-        "h": 231
-      },
-      "sourceSize": {
-        "w": 254,
-        "h": 231
-      }
-    }
+ "frames": {
+  "body_baby": {
+   "frame": {
+    "x": 8,
+    "y": 8,
+    "w": 128,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 107
+   }
   },
-  "meta": {
-    "image": "robot.png",
-    "size": {
-      "w": 1600,
-      "h": 791
-    },
-    "scale": "1"
+  "body_baby_detail": {
+   "frame": {
+    "x": 144,
+    "y": 8,
+    "w": 128,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 107
+   }
+  },
+  "body_grown": {
+   "frame": {
+    "x": 280,
+    "y": 8,
+    "w": 179,
+    "h": 135
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 179,
+    "h": 135
+   },
+   "sourceSize": {
+    "w": 179,
+    "h": 135
+   }
+  },
+  "body_grown_detail": {
+   "frame": {
+    "x": 467,
+    "y": 8,
+    "w": 179,
+    "h": 135
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 179,
+    "h": 135
+   },
+   "sourceSize": {
+    "w": 179,
+    "h": 135
+   }
+  },
+  "thruster": {
+   "frame": {
+    "x": 654,
+    "y": 8,
+    "w": 57,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 57,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 57,
+    "h": 65
+   }
+  },
+  "drill": {
+   "frame": {
+    "x": 719,
+    "y": 8,
+    "w": 52,
+    "h": 57
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 52,
+    "h": 57
+   },
+   "sourceSize": {
+    "w": 52,
+    "h": 57
+   }
+  },
+  "cannon": {
+   "frame": {
+    "x": 779,
+    "y": 8,
+    "w": 65,
+    "h": 64
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 65,
+    "h": 64
+   },
+   "sourceSize": {
+    "w": 65,
+    "h": 64
+   }
+  },
+  "stabilizer": {
+   "frame": {
+    "x": 852,
+    "y": 8,
+    "w": 58,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 58,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 58,
+    "h": 72
+   }
+  },
+  "plate": {
+   "frame": {
+    "x": 918,
+    "y": 8,
+    "w": 48,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 48,
+    "h": 48
+   }
+  },
+  "antenna": {
+   "frame": {
+    "x": 974,
+    "y": 8,
+    "w": 29,
+    "h": 51
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 29,
+    "h": 51
+   },
+   "sourceSize": {
+    "w": 29,
+    "h": 51
+   }
+  },
+  "face_villain": {
+   "frame": {
+    "x": 8,
+    "y": 151,
+    "w": 68,
+    "h": 39
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 39
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 39
+   }
   }
+ },
+ "meta": {
+  "image": "robot.png",
+  "size": {
+   "w": 1024,
+   "h": 198
+  },
+  "scale": "1"
+ }
 }

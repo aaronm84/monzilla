@@ -154,10 +154,20 @@ A kind can omit any slot; the vector drawing fills in.
 ## Stress test (lizard, robot, blob)
 
 Three kinds validate the system before the other seven are made. The
-placeholder sets in `apps/web/public/parts/{lizard,robot,blob}` are
-gray stand-ins with the exact file layout, slot names, attach points,
-anchors, bounds, `omit` lists, and motion presets the real art should
-replace. Open the game with `?parts=lizard,robot,blob` to see them.
+sets in `apps/web/public/parts/{lizard,robot,blob}` are cut from the
+design board `docs/concept/sprite-stress-test.png` by
+`apps/web/scripts/extract-board-parts.py`: soft-alpha crops of the gray
+bodies and slot parts, converted to tintable base plus untinted detail
+layers, with estimated pivots, attach points, anchors, and bounds. They
+ship (listed in `index.json`) so the game shows the boards' art now.
+
+Known limits of the extraction, fixed by real exports: the board bodies
+already include tails and plates, so `spike` is omitted and tail parts
+double up; resolution is the board's (about 40 px per body unit), so
+the craft zoom is soft; eyes are split heuristically. Real exports
+should paint bodies without tails or plates, at `unit: 128`.
+`npm run parts:placeholder -w apps/web` still generates the gray
+synthetic set for pipeline tests.
 
 | Kind | Proves | Required art |
 |---|---|---|
