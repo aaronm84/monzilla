@@ -40,7 +40,8 @@ import { getStore } from '../game/ctx.js';
 import { sfx } from '../game/audio.js';
 import { IslandCamera } from '../game/camera.js';
 import { COLORS, FONT, burst, floatText, handleResize, label, layoutFor, makeBar, makeButton, panel, type Bar, type Button } from '../game/ui.js';
-import { drawEgg, drawKaiju } from '../render/kaiju.js';
+import { drawEgg } from '../render/kaiju.js';
+import { createKaiju } from '../render/kaijuSprite.js';
 import { drawBlocks, drawIslandTiles, type IslandView } from '../render/island.js';
 
 const STAGE_ICON: Record<string, string> = { egg: '🥚', hatchling: '🐣', juvenile: '🦎', guardian: '🦖' };
@@ -201,10 +202,8 @@ export class IslandScene extends Phaser.Scene {
   private addKaijuSprite(k: Kaiju) {
     const pos = k.pos ?? spawnTile(this.island);
     const p = this.view.tileToPixel(pos.x, pos.y);
-    const g = this.add.graphics();
     // Size so a hatchling is about a tile tall and a guardian about two.
-    drawKaiju(g, k.genome, 0, 0, (TILE / 36) * 0.55);
-    const c = this.add.container(p.x, p.y - TILE * 0.15, [g]);
+    const c = createKaiju(this, k.genome, p.x, p.y - TILE * 0.15, (TILE / 36) * 0.55);
     c.setDepth(pos.y);
     this.world.add(c);
     this.kaijuSprites.set(k.id, c);

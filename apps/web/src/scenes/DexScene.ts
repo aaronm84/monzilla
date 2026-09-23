@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { KIND_INFO, TYPE_INFO, dexPages, dexProgress, genomeFromSeed, hashString, type Kind, type KaijuType } from '@monzilla/core';
 import { getStore } from '../game/ctx.js';
 import { COLORS, FONT, handleResize, label, layoutFor, makeBar, makeButton, panel } from '../game/ui.js';
-import { drawKaiju, drawSilhouette } from '../render/kaiju.js';
+import { createKaiju } from '../render/kaijuSprite.js';
 
 /**
  * The collection book: one card per species (kind x type), a progress bar
@@ -65,13 +65,12 @@ export class DexScene extends Phaser.Scene {
         const cy0 = y + row * (cardH + gap);
         const type = page.key.split(':')[1] as KaijuType;
         panel(this, x, cy0, cardW, cardH, page.entry ? COLORS.panelLight : 0xe9eef5, 0.95);
-        const gfx = this.add.graphics();
         const cx = x + cardW / 2;
         const cy = cy0 + cardH * 0.5;
         const scale = (cardW / 190) * 0.55;
         const iconSize = L.compact ? 18 : 24;
         if (page.entry) {
-          drawKaiju(gfx, { ...page.entry.genome, size: 1.0 }, cx, cy, scale);
+          createKaiju(this, { ...page.entry.genome, size: 1.0 }, cx, cy, scale);
           this.add.text(x + 8, cy0 + 6, TYPE_INFO[type].icon, { fontSize: `${iconSize}px`, fontFamily: FONT });
           this.add
             .text(x + cardW - 8, cy0 + 6, `×${page.entry.count}`, { fontSize: `${iconSize * 0.8}px`, fontFamily: FONT, color: COLORS.text, fontStyle: 'bold' })
@@ -83,7 +82,7 @@ export class DexScene extends Phaser.Scene {
         } else {
           // A representative silhouette for the species, always the same one.
           const rep = genomeFromSeed(hashString(page.key), { alignment: 'guardian', kind, type });
-          drawSilhouette(gfx, { ...rep, size: 1.0 }, cx, cy, scale);
+          createKaiju(this, { ...rep, size: 1.0 }, cx, cy, scale, { silhouette: true, glow: false });
           this.add.text(x + 8, cy0 + 6, TYPE_INFO[type].icon, { fontSize: `${iconSize}px`, fontFamily: FONT }).setAlpha(0.5);
           this.add.text(cx, cy0 + cardH - iconSize * 0.9, '❓', { fontSize: `${iconSize * 0.8}px`, fontFamily: FONT }).setOrigin(0.5);
         }

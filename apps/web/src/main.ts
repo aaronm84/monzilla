@@ -6,6 +6,7 @@ import { openStore } from './game/store.js';
 import { sfx } from './game/audio.js';
 import { COLORS } from './game/ui.js';
 import { drawKaiju } from './render/kaiju.js';
+import { createKaiju } from './render/kaijuSprite.js';
 import { BootScene } from './scenes/BootScene.js';
 import { IslandScene } from './scenes/IslandScene.js';
 import { BattleScene } from './scenes/BattleScene.js';
@@ -44,7 +45,7 @@ async function start() {
   // Handy in the browser console and for automated checks.
   const w = window as unknown as { monzilla: Phaser.Game; monzillaCore: unknown };
   w.monzilla = game;
-  w.monzillaCore = { ...core, drawKaiju };
+  w.monzillaCore = { ...core, drawKaiju, createKaiju };
 }
 
 void start();

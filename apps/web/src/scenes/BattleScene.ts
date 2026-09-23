@@ -27,7 +27,7 @@ import {
 import { getStore } from '../game/ctx.js';
 import { sfx } from '../game/audio.js';
 import { COLORS, FONT, bob, burst, floatText, handleResize, label, layoutFor, makeBar, makeButton, panel, type Bar, type Button } from '../game/ui.js';
-import { drawKaiju } from '../render/kaiju.js';
+import { createKaiju } from '../render/kaijuSprite.js';
 
 /**
  * One villain, one guardian, two or three big buttons. The villain's bar
@@ -37,8 +37,8 @@ import { drawKaiju } from '../render/kaiju.js';
 export class BattleScene extends Phaser.Scene {
   private battle!: Battle;
   private guardianIndex = 0;
-  private villainGfx!: Phaser.GameObjects.Graphics;
-  private guardianGfx!: Phaser.GameObjects.Graphics;
+  private villainGfx!: Phaser.GameObjects.Container;
+  private guardianGfx!: Phaser.GameObjects.Container;
   private hpBar!: Bar;
   private moveButtons: Button[] = [];
   private busy = false;
@@ -115,14 +115,11 @@ export class BattleScene extends Phaser.Scene {
     this.guardianPos = { x: L.w * 0.27, y: floorY };
     this.villainPos = { x: L.w * 0.73, y: floorY - 20 };
 
-    this.villainGfx = this.add.graphics();
-    drawKaiju(this.villainGfx, villain.genome, this.villainPos.x, this.villainPos.y, scale);
+    this.villainGfx = createKaiju(this, villain.genome, this.villainPos.x, this.villainPos.y, scale);
+    this.villainGfx.setScale(-1, 1); // face the guardian
     bob(this, this.villainGfx, save.settings, 4);
-    // Villain sprites face left: flip by drawing then scaling around its position.
-    this.villainGfx.setScale(-1, 1).setX(this.villainPos.x * 2);
 
-    this.guardianGfx = this.add.graphics();
-    drawKaiju(this.guardianGfx, guardian.genome, this.guardianPos.x, this.guardianPos.y, scale);
+    this.guardianGfx = createKaiju(this, guardian.genome, this.guardianPos.x, this.guardianPos.y, scale);
     bob(this, this.guardianGfx, save.settings, 5);
 
     label(this, this.villainPos.x, arenaTop + 20, `${villain.isBoss ? '👑 ' : ''}${KIND_INFO[villain.genome.kind].icon} ${villain.name}`, 22, COLORS.muted);
@@ -187,8 +184,8 @@ export class BattleScene extends Phaser.Scene {
     else if (move.id === 'stomp') sfx.stomp();
     else sfx.hit(result.turn.effectiveness);
     if (!save.settings.reduceMotion) {
-      this.tweens.add({ targets: this.guardianGfx, x: 60, duration: 140, yoyo: true, ease: 'Quad.easeOut' });
-      this.tweens.add({ targets: this.villainGfx, x: this.villainGfx.x + 30, duration: 90, yoyo: true, repeat: 2, delay: 140 });
+      this.tweens.add({ targets: this.guardianGfx, x: this.guardianPos.x + 60, duration: 140, yoyo: true, ease: 'Quad.easeOut' });
+      this.tweens.add({ targets: this.villainGfx, x: this.villainPos.x + 30, duration: 90, yoyo: true, repeat: 2, delay: 140 });
     }
     const color = result.turn.effectiveness >= 2 ? '#7cff9e' : result.turn.effectiveness <= 0.5 ? '#c9d3e0' : '#ffffff';
     floatText(this, this.villainPos.x, this.villainPos.y - 120, `-${result.turn.damage}`, color, save.settings, result.turn.effectiveness >= 2 ? 48 : 36);
@@ -235,6 +232,7 @@ export class BattleScene extends Phaser.Scene {
     burst(this, this.villainPos.x, this.villainPos.y, 0x9c27b0, save.settings, 30);
     if (!save.settings.reduceMotion) {
       this.tweens.add({ targets: this.villainGfx, y: -400, alpha: 0, duration: 900, ease: 'Quad.easeIn' });
+      this.villainGfx.each((child: Phaser.GameObjects.GameObject) => this.tweens.add({ targets: child, alpha: 0, duration: 900 }));
     } else {
       this.villainGfx.setVisible(false);
     }

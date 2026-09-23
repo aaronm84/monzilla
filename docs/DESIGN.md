@@ -193,7 +193,10 @@ Held for later: real-time presence on a shared island, trading.
 - Firebase: Firestore for saves, Hosting for the app, Google sign-in for the
   parent (once per device, the kid never sees it). Free tier is plenty.
 - Art starts as programmatically drawn vector parts with palette swaps.
-  Hand-drawn parts can replace them later without touching the logic.
+  Sprite parts replace them one slot at a time through the manifest
+  system in `docs/SPRITES.md`: puppet animation over static parts,
+  tint layers instead of per-type sheets, vector fallback for any slot
+  without art.
 
 ## First playable slice
 

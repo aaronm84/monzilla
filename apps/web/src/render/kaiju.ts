@@ -13,7 +13,7 @@ function shade(color: number, amount: number): number {
 type G = Phaser.GameObjects.Graphics;
 
 /** Everything a template needs, computed once per draw. */
-interface Ctx {
+export interface Ctx {
   g: G;
   genome: Genome;
   x: number;
@@ -36,10 +36,18 @@ interface Ctx {
  *
  * (x, y) is the centre of the body. Creatures face right.
  */
-export function drawKaiju(g: G, genome: Genome, x: number, y: number, scale = 1, withGlow = true) {
-  const u = 36 * genome.size * scale;
-  const body = { round: { w: 2.0, h: 2.0 }, tall: { w: 1.6, h: 2.6 }, long: { w: 2.8, h: 1.6 }, wide: { w: 2.6, h: 1.8 } }[genome.parts.body];
-  const c: Ctx = {
+/** Body unit in pixels for a genome at a scale: shared by vector and sprite renderers. */
+export function bodyUnit(genome: Genome, scale = 1): number {
+  return 36 * genome.size * scale;
+}
+
+/** Build a drawing context. bw/bh default to the genome's body shape; sprite bodies override them. */
+export function makeCtx(g: G, genome: Genome, x: number, y: number, scale = 1, bodySize?: [number, number]): Ctx {
+  const u = bodyUnit(genome, scale);
+  const body = bodySize
+    ? { w: bodySize[0], h: bodySize[1] }
+    : { round: { w: 2.0, h: 2.0 }, tall: { w: 1.6, h: 2.6 }, long: { w: 2.8, h: 1.6 }, wide: { w: 2.6, h: 1.8 } }[genome.parts.body];
+  return {
     g,
     genome,
     x,
@@ -53,6 +61,19 @@ export function drawKaiju(g: G, genome: Genome, x: number, y: number, scale = 1,
     villain: genome.alignment === 'villain',
     type: genome.type,
   };
+}
+
+export function drawGlow(g: G, genome: Genome, x: number, y: number, scale = 1) {
+  const c = makeCtx(g, genome, x, y, scale);
+  g.fillStyle(hex(genome.palette.glow), 0.28);
+  g.fillEllipse(x, y + c.bh * 0.1, c.bw * 1.7, c.bh * 1.5);
+  g.fillStyle(hex(genome.palette.glow), 0.18);
+  g.fillEllipse(x, y + c.bh * 0.1, c.bw * 2.1, c.bh * 1.9);
+}
+
+export function drawKaiju(g: G, genome: Genome, x: number, y: number, scale = 1, withGlow = true) {
+  const c = makeCtx(g, genome, x, y, scale);
+  const u = c.u;
 
   if (withGlow) {
     g.fillStyle(hex(genome.palette.glow), 0.28);
@@ -157,7 +178,7 @@ function material(c: Ctx, bx: number, by: number, bw: number, bh: number) {
   }
 }
 
-function tail(c: Ctx, tx: number, ty: number) {
+export function partTail(c: Ctx, tx: number, ty: number) {
   const { g, u, primary, secondary } = c;
   g.fillStyle(primary, 1);
   switch (c.genome.parts.tail) {
@@ -180,7 +201,7 @@ function tail(c: Ctx, tx: number, ty: number) {
   }
 }
 
-function wings(c: Ctx, wy: number, sizeMul = 1) {
+export function partWings(c: Ctx, wy: number, sizeMul = 1) {
   const { g, u, x, bw, secondary } = c;
   const kind = c.genome.parts.wings;
   if (kind === 'none') return;
@@ -207,7 +228,7 @@ function legs(c: Ctx, spread = 0.3, size = 0.7) {
   g.fillEllipse(x + bw * spread, y + bh / 2, u * size, u * size);
 }
 
-function spikes(c: Ctx, cx: number, top: number, span: number, curve = 0.35) {
+export function partSpikes(c: Ctx, cx: number, top: number, span: number, curve = 0.35) {
   const { u } = c;
   const n = c.genome.parts.spikes;
   if (n <= 0) return;
@@ -220,7 +241,7 @@ function spikes(c: Ctx, cx: number, top: number, span: number, curve = 0.35) {
   }
 }
 
-function horns(c: Ctx, hx: number, hy: number, r: number, count = c.genome.parts.horns) {
+export function partHorns(c: Ctx, hx: number, hy: number, r: number, count = c.genome.parts.horns) {
   if (count <= 0) return;
   for (let h = 0; h < count; h++) {
     const t = count === 1 ? 0 : h / (count - 1) - 0.5;
@@ -228,7 +249,7 @@ function horns(c: Ctx, hx: number, hy: number, r: number, count = c.genome.parts
   }
 }
 
-function eye(c: Ctx, ex: number, ey: number, r: number, square = false) {
+export function partEye(c: Ctx, ex: number, ey: number, r: number, square = false) {
   const { g, villain } = c;
   const R = r * 1.25;
   if (villain) {
@@ -255,7 +276,7 @@ function eye(c: Ctx, ex: number, ey: number, r: number, square = false) {
   g.fillCircle(ex + R * 0.35, ey - R * 0.25, R * 0.22);
 }
 
-function mouth(c: Ctx, mx: number, my: number, w: number, thick: number) {
+export function partMouth(c: Ctx, mx: number, my: number, w: number, thick: number) {
   const { g } = c;
   g.lineStyle(Math.max(2, thick * 1.3), c.villain ? 0x2a1a3e : DARK, 1);
   if (c.villain) {
@@ -270,9 +291,9 @@ function mouth(c: Ctx, mx: number, my: number, w: number, thick: number) {
 }
 
 /** A round head with snout, eye, horns and mouth (lizard, dragon, serpent, turtle). */
-function head(c: Ctx, hx: number, hy: number, r: number, hornCount = c.genome.parts.horns) {
+export function partHead(c: Ctx, hx: number, hy: number, r: number, hornCount = c.genome.parts.horns) {
   const { g, primary } = c;
-  horns(c, hx, hy, r, hornCount);
+  partHorns(c, hx, hy, r, hornCount);
   g.fillStyle(shade(primary, -18), 1);
   g.fillCircle(hx, hy, r);
   g.fillStyle(primary, 1);
@@ -280,8 +301,8 @@ function head(c: Ctx, hx: number, hy: number, r: number, hornCount = c.genome.pa
   g.fillEllipse(hx + r * 0.6, hy + r * 0.25, r * 1.0, r * 0.65);
   g.fillStyle(0xffffff, 0.2);
   g.fillEllipse(hx - r * 0.3, hy - r * 0.45, r * 0.5, r * 0.3);
-  eye(c, hx + r * 0.22, hy - r * 0.22, r * 0.3);
-  mouth(c, hx + r * 0.4, hy + r * 0.5, r * 0.6, r * 0.1);
+  partEye(c, hx + r * 0.22, hy - r * 0.22, r * 0.3);
+  partMouth(c, hx + r * 0.4, hy + r * 0.5, r * 0.6, r * 0.1);
 }
 
 /** Positions for 1..3 heads above the body. */
@@ -313,24 +334,24 @@ function belly(c: Ctx) {
 const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
   lizard(c) {
     const { g, x, y, bw, bh, u, primary } = c;
-    tail(c, x - bw / 2 + u * 0.2, y + bh * 0.15);
-    wings(c, y - bh * 0.25);
+    partTail(c, x - bw / 2 + u * 0.2, y + bh * 0.15);
+    partWings(c, y - bh * 0.25);
     legs(c);
     bodyEllipse(c, x, y, bw, bh);
     belly(c);
-    spikes(c, x, y - bh / 2, bw * 0.7);
+    partSpikes(c, x, y - bh / 2, bw * 0.7);
     const r = u * (c.genome.parts.heads === 1 ? 0.9 : 0.65);
-    for (const s of headSpots(c, r)) head(c, s.hx, s.hy, r);
+    for (const s of headSpots(c, r)) partHead(c, s.hx, s.hy, r);
   },
 
   dragon(c) {
     const { g, x, y, bw, bh, u, primary } = c;
-    tail(c, x - bw / 2 + u * 0.2, y + bh * 0.15);
-    wings(c, y - bh * 0.3, 1.3);
+    partTail(c, x - bw / 2 + u * 0.2, y + bh * 0.15);
+    partWings(c, y - bh * 0.3, 1.3);
     legs(c, 0.3, 0.8);
     bodyEllipse(c, x, y, bw, bh);
     belly(c);
-    spikes(c, x, y - bh / 2, bw * 0.6);
+    partSpikes(c, x, y - bh / 2, bw * 0.6);
     // Long necks rising to each head.
     const r = u * (c.genome.parts.heads === 1 ? 0.75 : 0.55);
     for (const s of headSpots(c, r)) {
@@ -338,7 +359,7 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
       const ny = s.hy - r * 1.4;
       g.fillStyle(primary, 1);
       g.fillEllipse((nx + x) / 2, (ny + y - bh * 0.2) / 2, r * 1.1, Math.abs(ny - y) + bh * 0.3);
-      head(c, nx, ny, r);
+      partHead(c, nx, ny, r);
     }
   },
 
@@ -375,15 +396,15 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     g.fillCircle(x, hy, r);
     g.fillStyle(primary, 1);
     g.fillCircle(x - r * 0.05, hy - r * 0.08, r * 0.9);
-    eye(c, x - r * 0.35, hy - r * 0.1, r * 0.26);
-    eye(c, x + r * 0.35, hy - r * 0.1, r * 0.26);
-    mouth(c, x - r * 0.25, hy + r * 0.45, r * 0.5, r * 0.08);
+    partEye(c, x - r * 0.35, hy - r * 0.1, r * 0.26);
+    partEye(c, x + r * 0.35, hy - r * 0.1, r * 0.26);
+    partMouth(c, x - r * 0.25, hy + r * 0.45, r * 0.5, r * 0.08);
   },
 
   turtle(c) {
     const { g, x, y, bw, bh, u, primary, secondary } = c;
-    tail(c, x - bw / 2 + u * 0.1, y + bh * 0.2);
-    wings(c, y - bh * 0.1, 0.8);
+    partTail(c, x - bw / 2 + u * 0.1, y + bh * 0.2);
+    partWings(c, y - bh * 0.1, 0.8);
     legs(c, 0.38, 0.75);
     // Shell dome in the secondary colour with crystal plates on top.
     g.fillStyle(shade(secondary, -20), 1);
@@ -397,9 +418,9 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     // Underside strip.
     g.fillStyle(primary, 1);
     g.fillEllipse(x, y + bh * 0.4, bw * 0.95, bh * 0.25);
-    spikes(c, x, y - bh * 0.5, bw * 0.7, 0.5);
+    partSpikes(c, x, y - bh * 0.5, bw * 0.7, 0.5);
     const r = u * 0.65;
-    head(c, x + bw * 0.5 + r * 0.4, y - bh * 0.05, r);
+    partHead(c, x + bw * 0.5 + r * 0.4, y - bh * 0.05, r);
   },
 
   yeti(c) {
@@ -426,10 +447,10 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     // Face patch on the upper body; no separate head.
     g.fillStyle(secondary, 1);
     g.fillEllipse(x + bw * 0.08, y - bh * 0.18, bw * 0.55, bh * 0.45);
-    eye(c, x - bw * 0.06, y - bh * 0.25, u * 0.22);
-    eye(c, x + bw * 0.22, y - bh * 0.25, u * 0.22);
-    mouth(c, x - bw * 0.06, y - bh * 0.02, bw * 0.3, u * 0.08);
-    horns(c, x + bw * 0.08, y - bh * 0.35, u * 0.6);
+    partEye(c, x - bw * 0.06, y - bh * 0.25, u * 0.22);
+    partEye(c, x + bw * 0.22, y - bh * 0.25, u * 0.22);
+    partMouth(c, x - bw * 0.06, y - bh * 0.02, bw * 0.3, u * 0.08);
+    partHorns(c, x + bw * 0.08, y - bh * 0.35, u * 0.6);
   },
 
   robot(c) {
@@ -440,7 +461,7 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     g.fillRect(x + bw * 0.35 - u * 0.55, y + bh * 0.3, u * 0.55, bh * 0.4);
     g.fillRect(x - bw * 0.5 - u * 0.4, y - bh * 0.2, u * 0.4, bh * 0.55);
     g.fillRect(x + bw * 0.5, y - bh * 0.2, u * 0.4, bh * 0.55);
-    wings(c, y - bh * 0.1, 0.8);
+    partWings(c, y - bh * 0.1, 0.8);
     // Body with a chest light and panel lines.
     g.fillStyle(shade(primary, -18), 1);
     g.fillRoundedRect(x - bw / 2, y - bh / 2, bw, bh, u * 0.3);
@@ -457,7 +478,7 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
       g.fillCircle(x + side * bw * 0.35, y - bh * 0.3, u * 0.08);
       g.fillCircle(x + side * bw * 0.35, y + bh * 0.35, u * 0.08);
     }
-    spikes(c, x, y - bh / 2, bw * 0.6, 0);
+    partSpikes(c, x, y - bh / 2, bw * 0.6, 0);
     // Square head with a visor and antenna.
     const hw = bw * 0.6;
     const hh = u * 0.9;
@@ -466,13 +487,13 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     g.fillRoundedRect(x - hw / 2, hy - hh / 2, hw, hh, u * 0.15);
     g.fillStyle(DARK, 0.85);
     g.fillRoundedRect(x - hw * 0.4, hy - hh * 0.25, hw * 0.8, hh * 0.45, u * 0.1);
-    eye(c, x - hw * 0.15, hy - hh * 0.02, u * 0.16, true);
-    eye(c, x + hw * 0.22, hy - hh * 0.02, u * 0.16, true);
+    partEye(c, x - hw * 0.15, hy - hh * 0.02, u * 0.16, true);
+    partEye(c, x + hw * 0.22, hy - hh * 0.02, u * 0.16, true);
     g.lineStyle(Math.max(2, u * 0.08), secondary, 1);
     g.lineBetween(x, hy - hh / 2, x, hy - hh * 1.2);
     g.fillStyle(accent, 1);
     g.fillCircle(x, hy - hh * 1.2, u * 0.16);
-    horns(c, x, hy, u * 0.5, Math.min(1, c.genome.parts.horns));
+    partHorns(c, x, hy, u * 0.5, Math.min(1, c.genome.parts.horns));
   },
 
   crab(c) {
@@ -499,21 +520,21 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     bodyEllipse(c, x, y, bw, bh * 0.8);
     g.fillStyle(secondary, 0.6);
     g.fillEllipse(x, y + bh * 0.1, bw * 0.7, bh * 0.4);
-    spikes(c, x, y - bh * 0.4, bw * 0.6, 0.3);
+    partSpikes(c, x, y - bh * 0.4, bw * 0.6, 0.3);
     // Eye stalks.
     for (const side of [-1, 1]) {
       const ex = x + side * bw * 0.15;
       g.lineStyle(Math.max(2, u * 0.1), primary, 1);
       g.lineBetween(ex, y - bh * 0.3, ex, y - bh * 0.6);
-      eye(c, ex, y - bh * 0.65, u * 0.2);
+      partEye(c, ex, y - bh * 0.65, u * 0.2);
     }
-    mouth(c, x - bw * 0.1, y - bh * 0.05, bw * 0.2, u * 0.08);
+    partMouth(c, x - bw * 0.1, y - bh * 0.05, bw * 0.2, u * 0.08);
   },
 
   bird(c) {
     const { g, x, y, bw, bh, u, primary, secondary, accent } = c;
-    tail(c, x - bw / 2 + u * 0.1, y + bh * 0.1);
-    wings(c, y - bh * 0.15, 1.1);
+    partTail(c, x - bw / 2 + u * 0.1, y + bh * 0.1);
+    partWings(c, y - bh * 0.15, 1.1);
     // Thin legs with feet.
     g.lineStyle(Math.max(2, u * 0.1), accent, 1);
     for (const side of [-1, 1]) {
@@ -523,7 +544,7 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     }
     bodyEllipse(c, x, y, bw, bh);
     belly(c);
-    spikes(c, x, y - bh / 2, bw * 0.5);
+    partSpikes(c, x, y - bh / 2, bw * 0.5);
     // Head with a beak and crest.
     const r = u * 0.75;
     const hx = x + bw * 0.2;
@@ -537,7 +558,7 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     g.fillCircle(hx - r * 0.06, hy - r * 0.08, r * 0.92);
     g.fillStyle(accent, 1);
     g.fillTriangle(hx + r * 0.6, hy - r * 0.15, hx + r * 0.6, hy + r * 0.35, hx + r * 1.5, hy + r * 0.15);
-    eye(c, hx + r * 0.15, hy - r * 0.2, r * 0.28);
+    partEye(c, hx + r * 0.15, hy - r * 0.2, r * 0.28);
   },
 
   blob(c) {
@@ -562,8 +583,8 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
     g.fillStyle(0xffffff, 0.35);
     g.fillEllipse(x - bw * 0.2, y - bh * 0.15, bw * 0.25, bh * 0.2);
     // Big eyes and a wide mouth right on the body.
-    eye(c, x - bw * 0.12, y - bh * 0.05, u * 0.26);
-    eye(c, x + bw * 0.2, y - bh * 0.05, u * 0.26);
+    partEye(c, x - bw * 0.12, y - bh * 0.05, u * 0.26);
+    partEye(c, x + bw * 0.2, y - bh * 0.05, u * 0.26);
     g.lineStyle(Math.max(2, u * 0.1), DARK, 1);
     g.beginPath();
     g.arc(x + bw * 0.05, y + bh * 0.12, u * 0.45, 0.2, Math.PI - 0.2, false);
@@ -581,7 +602,7 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
       const py = y + Math.sin(t * Math.PI * 2) * bh * 0.32 + bh * 0.1 * (1 - t);
       pts.push({ px, py, r: bh * (0.16 + t * 0.2) });
     }
-    wings(c, y - bh * 0.2, 0.7);
+    partWings(c, y - bh * 0.2, 0.7);
     for (const p of pts) {
       g.fillStyle(shade(primary, -18), 1);
       g.fillCircle(p.px, p.py, p.r);
@@ -607,7 +628,7 @@ const TEMPLATES: Record<Kind, (c: Ctx) => void> = {
         g.fillStyle(primary, 1);
         g.fillEllipse((hx + last.px) / 2, (hy + last.py) / 2, r * 0.9, r * 1.6);
       }
-      head(c, hx, hy, r);
+      partHead(c, hx, hy, r);
       // Forked tongue
       g.lineStyle(Math.max(2, u * 0.06), 0xff4081, 1);
       g.lineBetween(hx + r * 1.0, hy + r * 0.35, hx + r * 1.5, hy + r * 0.3);
