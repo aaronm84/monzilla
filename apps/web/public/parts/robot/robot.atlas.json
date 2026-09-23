@@ -1,0 +1,172 @@
+{
+  "frames": {
+    "body_baby": {
+      "frame": {
+        "x": 8,
+        "y": 8,
+        "w": 328,
+        "h": 528
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 328,
+        "h": 528
+      },
+      "sourceSize": {
+        "w": 328,
+        "h": 528
+      }
+    },
+    "body_baby_detail": {
+      "frame": {
+        "x": 344,
+        "y": 8,
+        "w": 328,
+        "h": 528
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 328,
+        "h": 528
+      },
+      "sourceSize": {
+        "w": 328,
+        "h": 528
+      }
+    },
+    "body_grown": {
+      "frame": {
+        "x": 680,
+        "y": 8,
+        "w": 369,
+        "h": 536
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 369,
+        "h": 536
+      },
+      "sourceSize": {
+        "w": 369,
+        "h": 536
+      }
+    },
+    "body_grown_detail": {
+      "frame": {
+        "x": 1057,
+        "y": 8,
+        "w": 369,
+        "h": 536
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 369,
+        "h": 536
+      },
+      "sourceSize": {
+        "w": 369,
+        "h": 536
+      }
+    },
+    "thruster": {
+      "frame": {
+        "x": 1434,
+        "y": 8,
+        "w": 154,
+        "h": 103
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 154,
+        "h": 103
+      },
+      "sourceSize": {
+        "w": 154,
+        "h": 103
+      }
+    },
+    "spike": {
+      "frame": {
+        "x": 8,
+        "y": 552,
+        "w": 90,
+        "h": 141
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 90,
+        "h": 141
+      },
+      "sourceSize": {
+        "w": 90,
+        "h": 141
+      }
+    },
+    "antenna": {
+      "frame": {
+        "x": 106,
+        "y": 552,
+        "w": 52,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 52,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 52,
+        "h": 128
+      }
+    },
+    "face_villain": {
+      "frame": {
+        "x": 166,
+        "y": 552,
+        "w": 254,
+        "h": 231
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 254,
+        "h": 231
+      },
+      "sourceSize": {
+        "w": 254,
+        "h": 231
+      }
+    }
+  },
+  "meta": {
+    "image": "robot.png",
+    "size": {
+      "w": 1600,
+      "h": 791
+    },
+    "scale": "1"
+  }
+}

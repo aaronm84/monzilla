@@ -4,6 +4,30 @@ import type { Kind } from '@monzilla/core';
 /** See docs/SPRITES.md for the format these types describe. */
 export type Tint = 'primary' | 'secondary' | 'accent' | 'none';
 
+/** Slots a genome can ask for. A kind may reinterpret or omit any of them. */
+export type Slot = 'tail' | 'wings' | 'spike' | 'horn' | 'head' | 'face';
+export const SLOTS: Slot[] = ['tail', 'wings', 'spike', 'horn', 'head', 'face'];
+
+/** Semantic anchors, in body units from the body centre. All optional. */
+export interface Anchors {
+  mouth?: [number, number];
+  head?: [number, number];
+  back?: [number, number];
+  center?: [number, number];
+  feet?: [number, number];
+  attackOrigin?: [number, number];
+  effectOrigin?: [number, number];
+}
+
+/** Logical footprint in body units, independent of PNG padding. */
+export interface Bounds {
+  /** Tap/selection box: width, height, centred on the body centre unless offset. */
+  selection: [number, number];
+  selectionOffset?: [number, number];
+  /** Ground footprint width/height for shadows and placement. */
+  footprint?: [number, number];
+}
+
 export interface BodyDef {
   frame: string;
   detail?: string;
@@ -20,6 +44,8 @@ export interface BodyDef {
     horns?: [number, number];
     face?: [number, number];
   };
+  anchors?: Anchors;
+  bounds?: Bounds;
 }
 
 export interface PartDef {
@@ -32,12 +58,22 @@ export interface PartDef {
   scale?: number;
 }
 
+/** How a kind moves. Picks a preset in render/motion.ts. */
+export type MotionPreset = 'organic' | 'rigid' | 'wobble';
+
 export interface KindManifest {
   kind: Kind;
   atlas: string;
   unit: number;
   bodies: { baby: BodyDef; grown: BodyDef };
   parts: Record<string, PartDef>;
+  /**
+   * Slots this kind deliberately does not render, even when the genome
+   * has them. Omitted slots get no sprite and no vector fallback.
+   */
+  omit?: Slot[];
+  motion?: MotionPreset;
+  displayName?: string;
 }
 
 /**

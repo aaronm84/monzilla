@@ -1,0 +1,152 @@
+{
+  "frames": {
+    "body_baby": {
+      "frame": {
+        "x": 8,
+        "y": 8,
+        "w": 300,
+        "h": 269
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 300,
+        "h": 269
+      },
+      "sourceSize": {
+        "w": 300,
+        "h": 269
+      }
+    },
+    "body_baby_detail": {
+      "frame": {
+        "x": 316,
+        "y": 8,
+        "w": 300,
+        "h": 269
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 300,
+        "h": 269
+      },
+      "sourceSize": {
+        "w": 300,
+        "h": 269
+      }
+    },
+    "body_grown": {
+      "frame": {
+        "x": 624,
+        "y": 8,
+        "w": 400,
+        "h": 359
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 400,
+        "h": 359
+      },
+      "sourceSize": {
+        "w": 400,
+        "h": 359
+      }
+    },
+    "body_grown_detail": {
+      "frame": {
+        "x": 1032,
+        "y": 8,
+        "w": 400,
+        "h": 359
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 400,
+        "h": 359
+      },
+      "sourceSize": {
+        "w": 400,
+        "h": 359
+      }
+    },
+    "drip": {
+      "frame": {
+        "x": 1440,
+        "y": 8,
+        "w": 103,
+        "h": 90
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 103,
+        "h": 90
+      },
+      "sourceSize": {
+        "w": 103,
+        "h": 90
+      }
+    },
+    "nub": {
+      "frame": {
+        "x": 8,
+        "y": 375,
+        "w": 64,
+        "h": 77
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 77
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 77
+      }
+    },
+    "face_villain": {
+      "frame": {
+        "x": 80,
+        "y": 375,
+        "w": 212,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 212,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 212,
+        "h": 192
+      }
+    }
+  },
+  "meta": {
+    "image": "blob.png",
+    "size": {
+      "w": 1600,
+      "h": 575
+    },
+    "scale": "1"
+  }
+}

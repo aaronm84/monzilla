@@ -41,7 +41,9 @@ import { sfx } from '../game/audio.js';
 import { IslandCamera } from '../game/camera.js';
 import { COLORS, FONT, burst, floatText, handleResize, label, layoutFor, makeBar, makeButton, panel, type Bar, type Button } from '../game/ui.js';
 import { drawEgg } from '../render/kaiju.js';
-import { createKaiju } from '../render/kaijuSprite.js';
+import { createKaiju, kaijuAnchor, kaijuContains } from '../render/kaijuSprite.js';
+import { attachMotion, presetFor, type Motion } from '../render/motion.js';
+import { getParts } from '../render/parts.js';
 import { drawBlocks, drawIslandTiles, type IslandView } from '../render/island.js';
 
 const STAGE_ICON: Record<string, string> = { egg: '🥚', hatchling: '🐣', juvenile: '🦎', guardian: '🦖' };
@@ -80,6 +82,7 @@ export class IslandScene extends Phaser.Scene {
   private gridGfx!: Phaser.GameObjects.Graphics;
   private ghostGfx!: Phaser.GameObjects.Graphics;
   private kaijuSprites = new Map<string, Phaser.GameObjects.Container>();
+  private motions = new Map<string, Motion>();
   private walking = false;
   private careBars: Partial<Record<CareAction, Bar>> = {};
   private growthBar: Bar | null = null;
@@ -114,6 +117,7 @@ export class IslandScene extends Phaser.Scene {
     this.selected = Math.min(this.selected, Math.max(0, save.kaiju.length - 1));
     this.island = generateIsland(save.seed);
     this.kaijuSprites.clear();
+    this.motions.clear();
     this.careBars = {};
     this.careButtons = {};
     this.toolButtons = {};
@@ -208,6 +212,7 @@ export class IslandScene extends Phaser.Scene {
     this.world.add(c);
     this.kaijuSprites.set(k.id, c);
     this.world.sort('depth');
+    this.motions.set(k.id, attachMotion(this, c, presetFor(k.genome.kind, getParts(this).get(k.genome.kind)?.motion), getStore(this).save.settings));
   }
 
   private redrawBlocks() {
@@ -264,8 +269,7 @@ export class IslandScene extends Phaser.Scene {
 
     // Tap on a kaiju shows its stats; tap elsewhere walks the selected one.
     for (const [id, sprite] of this.kaijuSprites) {
-      const st = this.view.pixelToTile(sprite.x, sprite.y + TILE * 0.15);
-      if (st && st.x === t.x && st.y === t.y) {
+      if (kaijuContains(sprite, wx, wy)) {
         const idx = save.kaiju.findIndex((k) => k.id === id);
         if (idx >= 0 && idx !== this.selected) return this.scene.restart({ selected: idx });
         return this.toggleStats();
@@ -290,18 +294,20 @@ export class IslandScene extends Phaser.Scene {
     this.walking = true;
     const settings = store.save.settings;
     const stepMs = settings.reduceMotion ? 60 : 170;
+    this.motions.get(me.id)?.stop();
     let i = 0;
     const step = () => {
       const p = path[i];
       if (!p) {
         this.walking = false;
         store.update((s) => ({ ...s, kaiju: s.kaiju.map((k) => (k.id === me.id ? { ...k, pos: { x, y } } : k)) }));
+        this.motions.set(me.id, attachMotion(this, sprite, presetFor(me.genome.kind, getParts(this).get(me.genome.kind)?.motion), settings));
         this.updateGlow(store.save);
         return;
       }
       const px = this.view.tileToPixel(p.x, p.y);
       const facing = px.x < sprite.x ? -1 : px.x > sprite.x ? 1 : Math.sign(sprite.scaleX) || 1;
-      sprite.setScale(facing, 1);
+      sprite.setScale(facing, 1); // flip the whole creature; parts come along
       sprite.setDepth(p.y);
       this.world.sort('depth');
       this.tweens.add({
@@ -587,8 +593,11 @@ export class IslandScene extends Phaser.Scene {
     ({ feed: () => sfx.chomp(), wash: () => sfx.splash(), play: () => sfx.boing(), sleep: () => sfx.snore() })[action]();
     const sprite = this.kaijuSprites.get(kaiju.id);
     if (sprite) {
-      floatText(this, sprite.x, sprite.y - TILE, result.barGain > 0 ? `+${result.barGain}` : '+1', result.barGain > 0 ? '#a5d6a7' : '#ffffff', save.settings, 30, this.world);
-      if (!save.settings.reduceMotion) this.tweens.add({ targets: sprite, scaleY: 0.9, duration: 120, yoyo: true });
+      const head = kaijuAnchor(sprite, 'head');
+      floatText(this, head.x, head.y - TILE * 0.5, result.barGain > 0 ? `+${result.barGain}` : '+1', result.barGain > 0 ? '#a5d6a7' : '#ffffff', save.settings, 30, this.world);
+      const m = this.motions.get(kaiju.id);
+      if (action === 'play') m?.hop();
+      else m?.squash();
     }
 
     if (result.grewTo) {

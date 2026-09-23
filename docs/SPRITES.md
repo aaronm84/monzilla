@@ -44,12 +44,17 @@ the placeholder lizard set used to exercise the pipeline.
 
 ## Files per kind
 
+Each kind lives in its own folder. Only kinds listed in `index.json` ship.
+
 ```
 apps/web/public/parts/
-  index.json          ["lizard", "robot"]        kinds that have art
-  lizard.json         manifest (this format)
-  lizard.png          atlas image
-  lizard.atlas.json   Phaser JSON-hash atlas (TexturePacker / free-tex-packer)
+  index.json                ["lizard", "robot"]
+  lizard/
+    lizard.json             manifest (this format)
+    lizard.png              atlas image
+    lizard.atlas.json       Phaser JSON-hash atlas (TexturePacker / free-tex-packer)
+  robot/
+    ...
 ```
 
 ## Manifest format
@@ -89,11 +94,35 @@ apps/web/public/parts/
 
 - `tint`: `primary` (body colour), `secondary` (belly/wing colour),
   `accent` (plate colour), or `none`.
+- `omit` (top level, optional): slots this kind never renders, even when
+  the genome has them. Omitted slots get no sprite and no vector fallback.
+  A blob might omit `["wings", "horn", "head"]`.
+- `motion` (top level, optional): `organic` (bob, squash), `rigid`
+  (stepped bob, no squash), or `wobble` (scale wobble, drift). Defaults by
+  kind. Every kind gets the same one-shot reactions: hop, shake, recoil,
+  squash; calm-motion mode shrinks them.
+- `anchors` (per body, optional, body units from centre): `mouth`,
+  `head`, `back`, `center`, `feet`, `attackOrigin`, `effectOrigin`. The
+  game uses them for floating numbers, effects, and reactions. Missing
+  anchors get sensible defaults from the body size.
+- `bounds` (per body, optional, body units): `selection` box and
+  `selectionOffset` for taps, `footprint` for shadows and placement.
+  Transparent padding never affects tap detection.
 - `z`: `behind` draws under the body, `front` over it.
 - Spikes and horns are one image each; the game places `parts.spikes`
   copies along the back and `parts.horns` copies on the head, so make them
   a single upright plate with the pivot at its base.
 - Wings are one image for both sides; the game mirrors it.
+
+## Slots are generic on purpose
+
+A kind may reinterpret any slot. The robot's `tail.*` parts are rear
+modules, its `horn` is an antenna, its `spike` is an armour plate. The
+blob's `tail.*` is a drip and its `spike` a crystal nub. Map every genome
+variant that could occur (all four tails) or the vector fallback will
+draw the missing one. If a future kind reveals a genuinely new concept
+(a turtle shell, crab claws), add a semantic slot deliberately rather
+than stretching these.
 
 ## Slot list
 
@@ -122,12 +151,32 @@ A kind can omit any slot; the vector drawing fills in.
   shape from the concept boards.
 - Leave 8 px of transparent padding on every frame.
 
-## Pilot checklist
+## Stress test (lizard, robot, blob)
 
-1. Lizard: both bodies, tail × 4, spike, horn, face.villain. Test on the
-   island next to vector creatures.
-2. One awkward kind (blob or robot) to stress the slot model.
-3. Then the other eight kinds.
+Three kinds validate the system before the other seven are made. The
+placeholder sets in `apps/web/public/parts/{lizard,robot,blob}` are
+gray stand-ins with the exact file layout, slot names, attach points,
+anchors, bounds, `omit` lists, and motion presets the real art should
+replace. Open the game with `?parts=lizard,robot,blob` to see them.
+
+| Kind | Proves | Required art |
+|---|---|---|
+| Lizard | pivots, tails, repeated spikes, horns, tinting, villain overlay, flip | both bodies + details, tail × 4, spike, horn, face.villain |
+| Robot | generic slots on rigid anatomy, metallic tints, rigid motion | both bodies + details, rear module(s) mapped to tail.*, plate as spike, antenna as horn, face.villain |
+| Blob | omitted slots, minimal anatomy, wobble motion, deformation vs attach points | both bodies + details, drip as tail.*, nub as spike, face.villain; omit wings, horn, head |
+
+Minimum genomes to check per kind: water guardian, fire guardian, plant
+guardian, fire villain (lizard); lightning guardian, water guardian, a
+villain (robot); water guardian, fire guardian, a villain (blob). Check
+each as baby and grown, facing both ways, on the island and in the dex.
+
+Success: all three load through the same renderer with no kind-specific
+code path, missing slots fall back or are omitted, type and alignment
+come from tint plus overlay only, bodies switch cleanly, motion is all
+transforms, and adding a fourth kind is assets plus a manifest.
+
+Note: there is no dark type in the game. A "dark villain" in the brief
+is any type's villain; the darkening comes from the villain palette.
 
 ## Export
 

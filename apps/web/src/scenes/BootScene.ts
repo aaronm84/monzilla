@@ -36,7 +36,7 @@ export class BootScene extends Phaser.Scene {
     if (index.length === 0) return this.scene.start('Island');
 
     for (const kind of index) {
-      this.load.json(`parts-${kind}`, `parts/${kind}.json`);
+      this.load.json(`parts-${kind}`, `parts/${kind}/${kind}.json`);
     }
     this.load.once('complete', () => {
       // Manifests are in; now the atlases they name.
@@ -44,7 +44,7 @@ export class BootScene extends Phaser.Scene {
         const m = this.cache.json.get(`parts-${kind}`) as KindManifest | undefined;
         if (!m) continue;
         lib.add(m);
-        this.load.atlas(m.atlas, `parts/${m.atlas}.png`, `parts/${m.atlas}.atlas.json`);
+        this.load.atlas(m.atlas, `parts/${kind}/${m.atlas}.png`, `parts/${kind}/${m.atlas}.atlas.json`);
       }
       this.load.once('complete', () => this.scene.start('Island'));
       this.load.start();

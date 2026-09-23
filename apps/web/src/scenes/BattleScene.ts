@@ -26,8 +26,10 @@ import {
 } from '@monzilla/core';
 import { getStore } from '../game/ctx.js';
 import { sfx } from '../game/audio.js';
-import { COLORS, FONT, bob, burst, floatText, handleResize, label, layoutFor, makeBar, makeButton, panel, type Bar, type Button } from '../game/ui.js';
-import { createKaiju } from '../render/kaijuSprite.js';
+import { COLORS, FONT, burst, floatText, handleResize, label, layoutFor, makeBar, makeButton, panel, type Bar, type Button } from '../game/ui.js';
+import { createKaiju, kaijuAnchor } from '../render/kaijuSprite.js';
+import { attachMotion, presetFor, type Motion } from '../render/motion.js';
+import { getParts } from '../render/parts.js';
 
 /**
  * One villain, one guardian, two or three big buttons. The villain's bar
@@ -39,6 +41,8 @@ export class BattleScene extends Phaser.Scene {
   private guardianIndex = 0;
   private villainGfx!: Phaser.GameObjects.Container;
   private guardianGfx!: Phaser.GameObjects.Container;
+  private villainMotion!: Motion;
+  private guardianMotion!: Motion;
   private hpBar!: Bar;
   private moveButtons: Button[] = [];
   private busy = false;
@@ -115,12 +119,13 @@ export class BattleScene extends Phaser.Scene {
     this.guardianPos = { x: L.w * 0.27, y: floorY };
     this.villainPos = { x: L.w * 0.73, y: floorY - 20 };
 
+    const lib = getParts(this);
     this.villainGfx = createKaiju(this, villain.genome, this.villainPos.x, this.villainPos.y, scale);
     this.villainGfx.setScale(-1, 1); // face the guardian
-    bob(this, this.villainGfx, save.settings, 4);
+    this.villainMotion = attachMotion(this, this.villainGfx, presetFor(villain.genome.kind, lib.get(villain.genome.kind)?.motion), save.settings);
 
     this.guardianGfx = createKaiju(this, guardian.genome, this.guardianPos.x, this.guardianPos.y, scale);
-    bob(this, this.guardianGfx, save.settings, 5);
+    this.guardianMotion = attachMotion(this, this.guardianGfx, presetFor(guardian.genome.kind, lib.get(guardian.genome.kind)?.motion), save.settings);
 
     label(this, this.villainPos.x, arenaTop + 20, `${villain.isBoss ? '👑 ' : ''}${KIND_INFO[villain.genome.kind].icon} ${villain.name}`, 22, COLORS.muted);
     if (guardian.name) label(this, this.guardianPos.x, arenaTop + 20, guardian.name, 22, COLORS.muted);
@@ -183,12 +188,11 @@ export class BattleScene extends Phaser.Scene {
     if (move.id === 'roar') sfx.roar();
     else if (move.id === 'stomp') sfx.stomp();
     else sfx.hit(result.turn.effectiveness);
-    if (!save.settings.reduceMotion) {
-      this.tweens.add({ targets: this.guardianGfx, x: this.guardianPos.x + 60, duration: 140, yoyo: true, ease: 'Quad.easeOut' });
-      this.tweens.add({ targets: this.villainGfx, x: this.villainPos.x + 30, duration: 90, yoyo: true, repeat: 2, delay: 140 });
-    }
+    this.guardianMotion.recoil(-1); // lunge forward
+    this.time.delayedCall(140, () => this.villainMotion.shake());
     const color = result.turn.effectiveness >= 2 ? '#7cff9e' : result.turn.effectiveness <= 0.5 ? '#c9d3e0' : '#ffffff';
-    floatText(this, this.villainPos.x, this.villainPos.y - 120, `-${result.turn.damage}`, color, save.settings, result.turn.effectiveness >= 2 ? 48 : 36);
+    const hit = kaijuAnchor(this.villainGfx, 'head');
+    floatText(this, hit.x, hit.y - 40, `-${result.turn.damage}`, color, save.settings, result.turn.effectiveness >= 2 ? 48 : 36);
     this.time.delayedCall(200, () => this.hpBar.setValue(this.battle.villainHp));
 
     if (this.battle.status === 'won') {
@@ -230,6 +234,7 @@ export class BattleScene extends Phaser.Scene {
 
     sfx.sparkle();
     burst(this, this.villainPos.x, this.villainPos.y, 0x9c27b0, save.settings, 30);
+    this.villainMotion.stop();
     if (!save.settings.reduceMotion) {
       this.tweens.add({ targets: this.villainGfx, y: -400, alpha: 0, duration: 900, ease: 'Quad.easeIn' });
       this.villainGfx.each((child: Phaser.GameObjects.GameObject) => this.tweens.add({ targets: child, alpha: 0, duration: 900 }));
