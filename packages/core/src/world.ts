@@ -73,6 +73,10 @@ function fbm(seed: number, x: number, y: number, octaves = 3): number {
 
 export const WATER_LEVEL = 0.35;
 
+/** The island grid. Big enough to explore, small enough to draw at once. */
+export const ISLAND_WIDTH = 32;
+export const ISLAND_HEIGHT = 24;
+
 /**
  * Generate an island. Elevation is noise times a radial falloff so the land
  * sits in the middle with water around it. Biome comes from a second noise
@@ -80,7 +84,7 @@ export const WATER_LEVEL = 0.35;
  * or swamp, and the middle is meadow or forest. Cloud appears only on the
  * highest peaks.
  */
-export function generateIsland(seed: number, width = 16, height = 12): Island {
+export function generateIsland(seed: number, width = ISLAND_WIDTH, height = ISLAND_HEIGHT): Island {
   const tiles: Tile[] = [];
   const elevSeed = forkSeed(seed, 'elev');
   const biomeSeed = forkSeed(seed, 'biome');
@@ -93,14 +97,14 @@ export function generateIsland(seed: number, width = 16, height = 12): Island {
       const ny = (y - cy) / (height / 2);
       const dist = Math.sqrt(nx * nx + ny * ny);
       const falloff = Math.max(0, 1 - dist * dist * 1.1);
-      const n = fbm(elevSeed, x / 5, y / 5);
+      const n = fbm(elevSeed, x / (width / 3.2), y / (height / 2.4));
       const elevation = Math.max(0, Math.min(1, n * 0.7 * falloff + falloff * 0.35));
       if (elevation < WATER_LEVEL) {
         tiles.push({ terrain: 'water', elevation });
         continue;
       }
-      const moisture = fbm(biomeSeed, x / 4, y / 4);
-      const temp = fbm(tempSeed, x / 6, y / 6);
+      const moisture = fbm(biomeSeed, x / (width / 4), y / (height / 3));
+      const temp = fbm(tempSeed, x / (width / 2.7), y / (height / 2));
       let biome: Biome;
       if (elevation > 0.9) biome = 'cloud';
       else if (elevation > 0.72) biome = temp > 0.5 ? 'volcano' : 'ice';

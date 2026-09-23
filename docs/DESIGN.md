@@ -43,8 +43,9 @@ These come first. Any feature that breaks one of them is wrong.
 1. **Care.** Feed, wash, play, sleep. Each action moves a bar and grows the
    kaiju. Growth is tied to care, never to a clock, so nothing decays while he
    is away.
-2. **Build.** Snap-to-grid block building on the island. Habitats, walls,
-   towers, decorations. Everything persists. This is the "order" outlet.
+2. **Build.** Snap-to-grid block building on the island, from the craft
+   zoom level with the palette as a drawer. Habitats, walls, towers,
+   decorations. Everything persists. This is the "order" outlet.
 3. **Alarm.** A villain appears on the horizon. He taps the alarm to start the
    fight, so it never interrupts him. He picks a guardian and uses two or
    three big moves.
@@ -122,6 +123,27 @@ grows: lots of feeding makes it bigger, lots of play makes it faster, extra
 spikes appear at each stage. Readable through the stat bars.
 
 ## World
+
+### One island, three zoom levels
+
+The island is a place, not a picture. The kaiju stands on it and walks
+where he taps. The camera has three snap levels so the view is always
+predictable, plus plus, minus, and a "find my kaiju" button so gestures
+are never required:
+
+- **Overview.** The whole island: weather, the egg nest on the shore, the
+  villain on the horizon.
+- **Explore.** About three times closer. Tap a tile and the kaiju walks
+  there over land. Props are real objects to walk between.
+- **Craft.** About six times closer, one tile roughly a thumb wide. This
+  is where the building palette lives.
+
+The camera clamps to the island so he can never scroll off into open
+sea and feel lost. Building is a mode on the same camera, not a separate
+screen: a ghost block follows the finger and places on release.
+
+The grid is 32 by 24 tiles. The island renders once to a texture and
+only the blocks redraw, so panning stays smooth on an older iPad.
 
 - The island is generated from noise over the member's seed, with biomes
   (beach, forest, volcano, ice, swamp, meadow, cloud), one per type.

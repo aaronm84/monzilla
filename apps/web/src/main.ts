@@ -8,7 +8,6 @@ import { COLORS } from './game/ui.js';
 import { drawKaiju } from './render/kaiju.js';
 import { BootScene } from './scenes/BootScene.js';
 import { IslandScene } from './scenes/IslandScene.js';
-import { BuildScene } from './scenes/BuildScene.js';
 import { BattleScene } from './scenes/BattleScene.js';
 import { DexScene } from './scenes/DexScene.js';
 import { SettingsScene } from './scenes/SettingsScene.js';
@@ -38,7 +37,7 @@ async function start() {
     },
     input: { activePointers: 2 },
     render: { antialias: true, roundPixels: false },
-    scene: [BootScene, IslandScene, BuildScene, BattleScene, DexScene, SettingsScene],
+    scene: [BootScene, IslandScene, BattleScene, DexScene, SettingsScene],
   });
   game.registry.set('store', store);
   game.registry.set('session', session);

@@ -8,6 +8,7 @@ import {
   dayIndex,
   deriveStats,
   eggReady,
+  findPath,
   generateIsland,
   generateVillain,
   genomeFromSeed,
@@ -16,11 +17,13 @@ import {
   kaijuStats,
   migrateSave,
   movesFor,
+  nestTile,
   newMemberSave,
   placeBlock,
   repairBlock,
   rosterById,
   rosterGenome,
+  spawnTile,
   startBattle,
   statTotal,
   typeMultiplier,
@@ -123,10 +126,22 @@ describe('care', () => {
 describe('world', () => {
   it('generates an island with land in the middle and water at the edges', () => {
     const island = generateIsland(123);
-    expect(isLand(island, 8, 6)).toBe(true);
+    expect(island.width).toBe(32);
+    expect(isLand(island, 16, 12)).toBe(true);
     expect(isLand(island, 0, 0)).toBe(false);
     const land = island.tiles.filter((t) => t.terrain !== 'water').length;
-    expect(land).toBeGreaterThan(20);
+    expect(land).toBeGreaterThan(120);
+  });
+  it('finds walking paths over land only', () => {
+    const island = generateIsland(123);
+    const from = spawnTile(island);
+    const nest = nestTile(island);
+    const path = findPath(island, from, nest);
+    expect(path).not.toBeNull();
+    for (const p of path!) expect(isLand(island, p.x, p.y)).toBe(true);
+    expect(path![path!.length - 1]).toEqual(nest);
+    expect(findPath(island, from, { x: 0, y: 0 })).toBeNull();
+    expect(findPath(island, from, from)).toEqual([]);
   });
   it('is deterministic', () => {
     expect(generateIsland(5)).toEqual(generateIsland(5));
@@ -135,10 +150,10 @@ describe('world', () => {
     const island = generateIsland(123);
     let layer = placeBlock({}, island, 0, 0, 'stone');
     expect(Object.keys(layer)).toHaveLength(0);
-    layer = placeBlock(layer, island, 8, 6, 'stone');
-    expect(layer['8,6']?.kind).toBe('stone');
-    layer = { ...layer, '8,6': { ...layer['8,6']!, broken: true } };
-    expect(repairBlock(layer, 8, 6)['8,6']?.broken).toBe(false);
+    layer = placeBlock(layer, island, 16, 12, 'stone');
+    expect(layer['16,12']?.kind).toBe('stone');
+    layer = { ...layer, '16,12': { ...layer['16,12']!, broken: true } };
+    expect(repairBlock(layer, 16, 12)['16,12']?.broken).toBe(false);
   });
 });
 
@@ -154,7 +169,7 @@ describe('battle', () => {
     const save = newMemberSave('m1', 'Test', 'seed');
     const guardian = save.kaiju[0]!;
     const island = generateIsland(save.seed);
-    let blocks = placeBlock({}, island, 8, 6, 'stone');
+    let blocks = placeBlock({}, island, 16, 12, 'stone');
     const villain = generateVillain(new Rng(9), {
       weather: 'sunny',
       biome: 'forest',
@@ -223,7 +238,14 @@ describe('save', () => {
     const s = migrateSave({ version: 1, memberId: 'x', name: 'x', seed: 1 });
     expect(s?.settings.reduceMotion).toBe(false);
     expect(s?.kaiju).toEqual([]);
-    expect(s?.version).toBe(2);
+    expect(s?.version).toBe(3);
+  });
+  it('moves v2 blocks to the centre of the bigger island and places kaiju', () => {
+    const fresh = newMemberSave('m', 'T', 'seed');
+    const old = { ...fresh, version: 2, blocks: { '8,6': { x: 8, y: 6, kind: 'stone', broken: false } }, kaiju: fresh.kaiju.map((k) => ({ ...k, pos: undefined })) };
+    const s = migrateSave(old)!;
+    expect(Object.keys(s.blocks)).toEqual(['16,12']);
+    expect(s.kaiju[0]?.pos).toBeDefined();
   });
   it('starts with Tidalon the lizard', () => {
     const s = newMemberSave('m', 'T', 'seed');

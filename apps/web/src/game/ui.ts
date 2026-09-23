@@ -281,11 +281,21 @@ export function label(scene: Phaser.Scene, x: number, y: number, text: string, s
 }
 
 /** Floating text that rises and fades, e.g. "+25" or "-12". */
-export function floatText(scene: Phaser.Scene, x: number, y: number, text: string, color = '#ffffff', settings?: Settings, size = 36) {
+export function floatText(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  text: string,
+  color = '#ffffff',
+  settings?: Settings,
+  size = 36,
+  layer?: Phaser.GameObjects.Container,
+) {
   const t = scene.add
     .text(x, y, text, { fontSize: `${size}px`, fontFamily: FONT, color, fontStyle: 'bold', stroke: '#1f3a68', strokeThickness: 5 })
     .setOrigin(0.5)
     .setDepth(1000);
+  layer?.add(t);
   if (settings?.reduceMotion) {
     scene.time.delayedCall(700, () => t.destroy());
     return;
@@ -294,10 +304,11 @@ export function floatText(scene: Phaser.Scene, x: number, y: number, text: strin
 }
 
 /** Confetti-ish burst of little squares. Skipped when reduce motion is on. */
-export function burst(scene: Phaser.Scene, x: number, y: number, color: number, settings?: Settings, count = 18) {
+export function burst(scene: Phaser.Scene, x: number, y: number, color: number, settings?: Settings, count = 18, layer?: Phaser.GameObjects.Container) {
   if (settings?.reduceMotion) return;
   for (let i = 0; i < count; i++) {
     const r = scene.add.rectangle(x, y, 10, 10, color).setDepth(999);
+    layer?.add(r);
     const a = Math.random() * Math.PI * 2;
     const d = 60 + Math.random() * 90;
     scene.tweens.add({

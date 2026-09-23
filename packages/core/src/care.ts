@@ -29,6 +29,8 @@ export interface Kaiju {
   care: CareState;
   growth: Growth;
   createdAt: number;
+  /** Where it stands on the island, in tiles. Set when it first appears. */
+  pos?: { x: number; y: number };
 }
 
 /** XP needed to reach each stage. */

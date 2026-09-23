@@ -51,7 +51,7 @@ npx firebase deploy --only hosting
 
 - `packages/core` — all game rules and procedural generation. Pure
   TypeScript, deterministic, unit-tested. No rendering.
-- `apps/web` — Phaser 3 rendering, Firebase, PWA shell.
+- `apps/web` — Phaser 3 rendering, Firebase, PWA shell. Scenes: Island (home, explore, build), Battle, Dex, Settings.
 - `firebase/` — Firestore security rules.
 
 ```sh

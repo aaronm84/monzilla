@@ -5,9 +5,10 @@ import { inferKind, speciesKey, type Genome } from './genome.js';
 import { rosterById, rosterGenome } from './roster.js';
 import { newEgg, type Egg } from './eggs.js';
 import { forkSeed, hashString } from './rng.js';
-import type { BuildLayer } from './world.js';
+import { ISLAND_HEIGHT, ISLAND_WIDTH, generateIsland, isLand, type BuildLayer } from './world.js';
+import { spawnTile } from './nav.js';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface Settings {
   reduceMotion: boolean;
@@ -66,6 +67,7 @@ export function newMemberSave(memberId: string, name: string, seedSource: string
     care: newCareState(),
     growth: newGrowth('hatchling'),
     createdAt: now,
+    pos: spawnTile(generateIsland(seed)),
   };
   const secondEgg = newEgg('egg_second', 'fire', forkSeed(seed, 'second'), 2);
   return {
@@ -109,6 +111,24 @@ export function migrateSave(raw: unknown): MemberSave | null {
     dex = rebuilt;
   }
 
+  // v2 -> v3: the island grew from 16x12 to 32x24. Blocks move to the
+  // centre of the new grid; any that land in water are dropped.
+  let blocks: BuildLayer = save.blocks ?? {};
+  if (save.version < 3 && typeof save.seed === 'number') {
+    const island = generateIsland(save.seed);
+    const dx = Math.floor((ISLAND_WIDTH - 16) / 2);
+    const dy = Math.floor((ISLAND_HEIGHT - 12) / 2);
+    const moved: BuildLayer = {};
+    for (const b of Object.values(blocks)) {
+      const x = b.x + dx;
+      const y = b.y + dy;
+      if (isLand(island, x, y)) moved[`${x},${y}`] = { ...b, x, y };
+    }
+    blocks = moved;
+    const spawn = spawnTile(island);
+    for (const k of kaiju) if (!k.pos) k.pos = { ...spawn };
+  }
+
   const activeBattle = save.activeBattle
     ? { ...save.activeBattle, villain: { ...save.activeBattle.villain, genome: withKind(save.activeBattle.villain.genome) } }
     : null;
@@ -118,7 +138,7 @@ export function migrateSave(raw: unknown): MemberSave | null {
     settings,
     eggs: save.eggs ?? [],
     kaiju,
-    blocks: save.blocks ?? {},
+    blocks,
     dex,
     stars: save.stars ?? 0,
     activeBattle,
