@@ -2,7 +2,12 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 
+// GitHub Pages serves the app under /<repo>/; local dev and Firebase
+// Hosting serve it at the root. The workflow sets BASE_PATH.
+const base = process.env.BASE_PATH ?? '/';
+
 export default defineConfig({
+  base,
   resolve: {
     alias: {
       '@monzilla/core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
@@ -32,7 +37,8 @@ export default defineConfig({
         background_color: '#bfe6f7',
         display: 'standalone',
         orientation: 'any',
-        start_url: '/',
+        start_url: base,
+        scope: base,
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },

@@ -34,6 +34,14 @@ when it reconnects.
 
 ## Deploy
 
+**GitHub Pages (automatic).** Every push to `main` runs
+`.github/workflows/pages.yml`, which tests, builds, and publishes the app
+to GitHub Pages. Add the four `VITE_FIREBASE_*` values as repository
+secrets to ship a build with sync enabled; without them the Pages build
+saves on-device only.
+
+**Firebase Hosting (manual).**
+
 ```sh
 npm run build
 npx firebase deploy --only hosting
