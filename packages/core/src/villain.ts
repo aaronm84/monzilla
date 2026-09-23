@@ -1,4 +1,5 @@
 import { generateGenome, type Genome } from './genome.js';
+import { rosterGenome, rosterVillainsFor } from './roster.js';
 import { Rng } from './rng.js';
 import { deriveStats, type Stats } from './stats.js';
 import { BIOME_TYPE, type Biome } from './world.js';
@@ -8,6 +9,8 @@ import { TYPES, type KaijuType } from './types.js';
 export interface Villain {
   id: string;
   name: string;
+  /** Set when this is a named regular from the roster. */
+  rosterId?: string;
   genome: Genome;
   stats: Stats;
   maxHp: number;
@@ -43,25 +46,33 @@ export function generateVillain(rng: Rng, opts: VillainOptions): Villain {
     ...TYPES.map((t) => ({ value: t, weight: 1 })),
   ]);
   const boss = opts.boss ?? false;
-  const genome = generateGenome(rng.fork('genome'), {
-    alignment: 'villain',
-    type,
-    menace: boss ? 1 : 0.6,
-    shinyChance: 1 / 128,
-  });
-  genome.size = boss ? 1.7 : 1.2;
+
+  // About a third of the time a named regular shows up, preferring the
+  // ones that belong to today's weather. The rest are freshly generated.
+  const regular = rng.chance(0.35) ? rng.pick(rosterVillainsFor(opts.weather)) : null;
+  const genome = regular
+    ? rosterGenome(regular)
+    : generateGenome(rng.fork('genome'), {
+        alignment: 'villain',
+        type,
+        menace: boss ? 1 : 0.6,
+        shinyChance: 1 / 128,
+      });
+  const isBoss = boss || Boolean(regular?.boss);
+  genome.size = isBoss ? 1.7 : 1.2;
   const stats = deriveStats(genome, { stage: 'guardian', feedCount: 0, playCount: 0, washCount: 0, sleepCount: 0 });
   // A guardian's basic hit is roughly power/4 (see battle.ts); aim for about
   // five hits with a neutral move, three with the right type.
-  const hitsToWin = boss ? 12 : 5;
+  const hitsToWin = isBoss ? 9 : 5;
   const roughHit = Math.max(4, opts.guardianStatTotal / 4 / 4);
   const maxHp = Math.round(roughHit * hitsToWin);
   return {
     id: `v_${rng.seed.toString(36)}`,
-    name: villainName(rng.fork('name')),
+    name: regular ? regular.name : villainName(rng.fork('name')),
+    ...(regular ? { rosterId: regular.id } : {}),
     genome,
     stats,
     maxHp,
-    isBoss: boss,
+    isBoss,
   };
 }

@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
+import * as core from '@monzilla/core';
 import { registerSW } from 'virtual:pwa-register';
 import { connectFirebase } from './game/firebase.js';
 import { openStore } from './game/store.js';
 import { sfx } from './game/audio.js';
 import { COLORS } from './game/ui.js';
+import { drawKaiju } from './render/kaiju.js';
 import { BootScene } from './scenes/BootScene.js';
 import { IslandScene } from './scenes/IslandScene.js';
 import { BuildScene } from './scenes/BuildScene.js';
@@ -41,7 +43,9 @@ async function start() {
   game.registry.set('store', store);
   game.registry.set('session', session);
   // Handy in the browser console and for automated checks.
-  (window as unknown as { monzilla: Phaser.Game }).monzilla = game;
+  const w = window as unknown as { monzilla: Phaser.Game; monzillaCore: unknown };
+  w.monzilla = game;
+  w.monzillaCore = { ...core, drawKaiju };
 }
 
 void start();

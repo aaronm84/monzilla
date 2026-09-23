@@ -7,6 +7,8 @@ export interface DexEntry {
   /** Times this species has been hatched or faced. */
   count: number;
   firstSeen: number;
+  seenGuardian: boolean;
+  seenVillain: boolean;
 }
 
 export type Dex = Record<string, DexEntry>;
@@ -14,8 +16,22 @@ export type Dex = Record<string, DexEntry>;
 export function recordInDex(dex: Dex, genome: Genome, now = Date.now()): Dex {
   const key = speciesKey(genome);
   const existing = dex[key];
-  if (existing) return { ...dex, [key]: { ...existing, count: existing.count + 1 } };
-  return { ...dex, [key]: { key, genome, count: 1, firstSeen: now } };
+  const seenGuardian = genome.alignment === 'guardian';
+  const seenVillain = genome.alignment === 'villain';
+  if (existing) {
+    return {
+      ...dex,
+      [key]: {
+        ...existing,
+        count: existing.count + 1,
+        // Prefer the guardian picture on the card once one has been seen.
+        genome: !existing.seenGuardian && seenGuardian ? genome : existing.genome,
+        seenGuardian: existing.seenGuardian || seenGuardian,
+        seenVillain: existing.seenVillain || seenVillain,
+      },
+    };
+  }
+  return { ...dex, [key]: { key, genome, count: 1, firstSeen: now, seenGuardian, seenVillain } };
 }
 
 export function dexProgress(dex: Dex): { have: number; total: number } {

@@ -1,11 +1,13 @@
 import type { Battle } from './battle.js';
 import { newCareState, newGrowth, type Kaiju } from './care.js';
 import { recordInDex, type Dex } from './dex.js';
-import { hatchGenome, newEgg, type Egg } from './eggs.js';
+import { inferKind, speciesKey, type Genome } from './genome.js';
+import { rosterById, rosterGenome } from './roster.js';
+import { newEgg, type Egg } from './eggs.js';
 import { forkSeed, hashString } from './rng.js';
 import type { BuildLayer } from './world.js';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export interface Settings {
   reduceMotion: boolean;
@@ -54,11 +56,12 @@ export interface Family {
  */
 export function newMemberSave(memberId: string, name: string, seedSource: string | number, now = Date.now()): MemberSave {
   const seed = typeof seedSource === 'string' ? hashString(seedSource) : seedSource >>> 0;
-  const starterEgg = newEgg('egg_starter', 'fire', forkSeed(seed, 'starter'), 3);
-  const starterGenome = hatchGenome(starterEgg);
+  // The first kaiju is Ember, the lizard regular, so every island starts
+  // with the same friendly face.
+  const starterGenome = rosterGenome(rosterById('ember')!);
   const starter: Kaiju = {
     id: 'k_starter',
-    name: '',
+    name: 'Ember',
     genome: starterGenome,
     care: newCareState(),
     growth: newGrowth('hatchling'),
@@ -88,15 +91,37 @@ export function migrateSave(raw: unknown): MemberSave | null {
   const save = raw as Partial<MemberSave>;
   if (typeof save.version !== 'number' || typeof save.memberId !== 'string') return null;
   const settings = { ...defaultSettings(), ...(save.settings ?? {}) };
+
+  const withKind = (g: Genome): Genome => (g.kind ? g : { ...g, kind: inferKind(g.parts) });
+  const kaiju = (save.kaiju ?? []).map((k) => ({ ...k, genome: withKind(k.genome) }));
+
+  // v1 -> v2: genomes gained a kind and the dex is keyed by kind:type
+  // instead of alignment:type:body. Rebuild the dex from its entries.
+  let dex: Dex = save.dex ?? {};
+  if (save.version < 2) {
+    let rebuilt: Dex = {};
+    for (const entry of Object.values(dex)) {
+      const g = withKind(entry.genome);
+      rebuilt = recordInDex(rebuilt, g, entry.firstSeen);
+      const key = speciesKey(g);
+      rebuilt[key] = { ...rebuilt[key]!, count: entry.count };
+    }
+    dex = rebuilt;
+  }
+
+  const activeBattle = save.activeBattle
+    ? { ...save.activeBattle, villain: { ...save.activeBattle.villain, genome: withKind(save.activeBattle.villain.genome) } }
+    : null;
+
   return {
     ...(save as MemberSave),
     settings,
     eggs: save.eggs ?? [],
-    kaiju: save.kaiju ?? [],
+    kaiju,
     blocks: save.blocks ?? {},
-    dex: save.dex ?? {},
+    dex,
     stars: save.stars ?? 0,
-    activeBattle: save.activeBattle ?? null,
+    activeBattle,
     lastVillainDay: save.lastVillainDay ?? null,
     version: SAVE_VERSION,
   };

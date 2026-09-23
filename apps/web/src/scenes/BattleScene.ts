@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import {
+  KIND_INFO,
   Rng,
   TYPE_INFO,
   WEATHER_INFO,
@@ -123,7 +124,7 @@ export class BattleScene extends Phaser.Scene {
     drawKaiju(this.guardianGfx, guardian.genome, this.guardianPos.x, this.guardianPos.y, scale);
     bob(this, this.guardianGfx, save.settings, 5);
 
-    label(this, this.villainPos.x, arenaTop + 20, villain.name, 22, COLORS.muted);
+    label(this, this.villainPos.x, arenaTop + 20, `${villain.isBoss ? '👑 ' : ''}${KIND_INFO[villain.genome.kind].icon} ${villain.name}`, 22, COLORS.muted);
     if (guardian.name) label(this, this.guardianPos.x, arenaTop + 20, guardian.name, 22, COLORS.muted);
 
     // Guardian picker (only when there is a choice)
@@ -134,7 +135,7 @@ export class BattleScene extends Phaser.Scene {
       const y = L.h - L.pad * 2 - L.btn - size / 2;
       save.kaiju.forEach((k, i) => {
         const b = makeButton(this, L.w / 2 - totalW / 2 + size / 2 + i * (size + gap), y, {
-          icon: TYPE_INFO[k.genome.type].icon, label: k.name || `Kaiju ${i + 1}`, size, settings: save.settings,
+          icon: KIND_INFO[k.genome.kind].icon, label: k.name || `Kaiju ${i + 1}`, size, sub: TYPE_INFO[k.genome.type].icon, settings: save.settings,
           onTap: () => {
             if (this.busy) return;
             this.battle = { ...this.battle, guardianId: k.id };

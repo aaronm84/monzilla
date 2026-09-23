@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
   CARE_ACTIONS,
   CARE_INFO,
+  KIND_INFO,
   STAGES,
   TYPE_INFO,
   WEATHER_INFO,
@@ -111,7 +112,7 @@ export class IslandScene extends Phaser.Scene {
     // Name + stage icon on one row at the top of the column.
     const nameY = stageAreaY + L.pad + 16;
     const nameX = L.portrait ? this.kaijuPos.x : stageAreaX + stageAreaW / 2;
-    this.nameText = label(this, nameX, nameY, kaiju ? `${STAGE_ICON[kaiju.growth.stage] ?? ''}  ${kaiju.name}` : '', 26);
+    this.nameText = label(this, nameX, nameY, kaiju ? `${STAGE_ICON[kaiju.growth.stage] ?? ''} ${KIND_INFO[kaiju.genome.kind].icon}  ${kaiju.name}` : '', 26);
 
     // Care bars in a column.
     const barH = L.compact ? 22 : 26;
@@ -332,7 +333,7 @@ export class IslandScene extends Phaser.Scene {
     const y = Math.max(L.pad, this.kaijuPos.y - h - 120);
     const c = this.add.container(0, 0);
     c.add(panel(this, x, y, w, h));
-    c.add(label(this, x + w / 2, y + 26, `${TYPE_INFO[kaiju.genome.type].icon} ${kaiju.genome.shiny ? '✨' : ''}`, 26));
+    c.add(label(this, x + w / 2, y + 26, `${KIND_INFO[kaiju.genome.kind].icon} ${TYPE_INFO[kaiju.genome.type].icon} ${kaiju.genome.shiny ? '✨' : ''}`, 26));
     const rows: [string, number][] = [
       ['💪', stats.power],
       ['💨', stats.speed],

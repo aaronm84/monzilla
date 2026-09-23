@@ -62,10 +62,53 @@ a genome. Same data, same renderer, so "built or generated" is one system, and
 breeding later is just mixing genomes.
 
 - Parts: body, heads (1–3), wings, tail, horns, spikes.
+- Kind: the creature's family (see below). Fixes the drawing template.
 - Alignment: `guardian` or `villain`. Alignment fixes the palette family.
 - Stats derive from parts (big body = more power) so a creature can be read by
   looking at it.
 - Shiny variants at a low rate for the collector.
+
+### Kinds
+
+A kind is the creature's family, and the main axis the dex collects on. It
+is separate from alignment, so a guardian robot and a villain robot both
+exist, just like his figure game where the same monster can be on either
+side. The palette rule still makes the side obvious.
+
+| Kind | Leans toward | Always has |
+|---|---|---|
+| Lizard | fire, plant, rock | classic body, no wings |
+| Dragon | fire, lightning, sky | bat wings, long necks, up to three heads |
+| Moth | sky, plant, ice | big spotted wings, antennae, fuzzy body |
+| Turtle | rock, water, plant | shell dome, wide body |
+| Yeti | ice, rock, sky | shaggy fur, long arms, face on the body |
+| Robot | lightning, rock, ice | boxy body, visor eyes, antenna, chest light |
+| Crab | water, rock, ice | claws, eye stalks, six legs |
+| Bird | sky, lightning, fire | beak, crest, thin legs, feather wings |
+| Blob | water, plant, lightning | no legs, wobbly body, bumps |
+| Serpent | water, plant, fire | S-curve body, no legs, forked tongue |
+
+Each kind has its own drawing template and constrains which parts the
+generator may pick. A kind rolls its favourite types most of the time but
+any type can turn up, so a fire yeti is a rare find.
+
+The dex is kind times type: 70 pages. Each page shows a badge for whether
+he has met the guardian, the villain, or both.
+
+### Named regulars
+
+A short hand-authored roster with fixed genomes and names, so the same
+dragon shows up on every stormy day and the kid learns who is who.
+Generated creatures fill in around them.
+
+- Guardians: Ember (fire lizard, the starter), Luna (sky moth), Boulder
+  (rock turtle), Frosty (ice yeti), Bolt (lightning robot).
+- Villains: Tridorah (three-headed lightning dragon, boss, storms),
+  Pinchor (ice crab, snow), Squall (sky bird, wind), Gloop (water blob,
+  rain), Murk (plant serpent, fog).
+
+About a third of daily villains are regulars, preferring the one that
+belongs to today's weather.
 
 ### Types
 

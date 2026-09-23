@@ -19,6 +19,8 @@ import {
   newMemberSave,
   placeBlock,
   repairBlock,
+  rosterById,
+  rosterGenome,
   startBattle,
   statTotal,
   typeMultiplier,
@@ -59,8 +61,25 @@ describe('genome', () => {
     expect(g.palette.accent).toBe('#ffffff');
     expect(v.palette.accent).toBe('#ff1744');
   });
-  it('has 56 species', () => {
-    expect(allSpeciesKeys()).toHaveLength(56);
+  it('has 70 species: ten kinds by seven types', () => {
+    expect(allSpeciesKeys()).toHaveLength(70);
+  });
+  it('kinds constrain parts', () => {
+    for (let s = 0; s < 100; s++) {
+      const moth = genomeFromSeed(s, { alignment: 'guardian', kind: 'moth' });
+      expect(moth.parts.wings).toBe('feather');
+      expect(moth.parts.heads).toBe(1);
+      const crab = genomeFromSeed(s, { alignment: 'villain', kind: 'crab' });
+      expect(crab.parts.body).toBe('wide');
+      const dragon = genomeFromSeed(s, { alignment: 'villain', kind: 'dragon' });
+      expect(dragon.parts.wings).toBe('bat');
+    }
+  });
+  it('kinds lean toward their favourite types', () => {
+    let iceYetis = 0;
+    for (let s = 0; s < 200; s++) if (genomeFromSeed(s, { alignment: 'guardian', kind: 'yeti' }).type === 'ice') iceYetis++;
+    expect(iceYetis).toBeGreaterThan(40);
+    expect(iceYetis).toBeLessThan(160);
   });
   it('stats stay within 1..99', () => {
     for (let s = 0; s < 200; s++) {
@@ -173,6 +192,30 @@ describe('eggs', () => {
   });
 });
 
+describe('roster', () => {
+  it('regulars are stable and keep their overrides', () => {
+    const t = rosterById('tridorah')!;
+    const a = rosterGenome(t);
+    const b = rosterGenome(t);
+    expect(a).toEqual(b);
+    expect(a.parts.heads).toBe(3);
+    expect(a.kind).toBe('dragon');
+    expect(a.alignment).toBe('villain');
+  });
+  it('a stormy day can bring Tridorah', () => {
+    let seen = false;
+    for (let s = 0; s < 40 && !seen; s++) {
+      const v = generateVillain(new Rng(s), { weather: 'storm', biome: 'meadow', guardianStatTotal: 100 });
+      if (v.rosterId === 'tridorah') {
+        seen = true;
+        expect(v.isBoss).toBe(true);
+        expect(v.name).toBe('Tridorah');
+      }
+    }
+    expect(seen).toBe(true);
+  });
+});
+
 describe('save', () => {
   it('migrates a bare save and rejects junk', () => {
     expect(migrateSave(null)).toBeNull();
@@ -180,5 +223,30 @@ describe('save', () => {
     const s = migrateSave({ version: 1, memberId: 'x', name: 'x', seed: 1 });
     expect(s?.settings.reduceMotion).toBe(false);
     expect(s?.kaiju).toEqual([]);
+    expect(s?.version).toBe(2);
+  });
+  it('starts with Ember the lizard', () => {
+    const s = newMemberSave('m', 'T', 'seed');
+    expect(s.kaiju[0]?.name).toBe('Ember');
+    expect(s.kaiju[0]?.genome.kind).toBe('lizard');
+    expect(Object.keys(s.dex)).toEqual(['lizard:fire']);
+  });
+  it('gives v1 genomes a kind and rekeys the dex', () => {
+    const v1 = newMemberSave('m', 'T', 'seed') as unknown as { version: number; kaiju: { genome: Record<string, unknown> }[]; dex: Record<string, { key: string; genome: Record<string, unknown>; count: number; firstSeen: number }> };
+    const g = { ...v1.kaiju[0]!.genome };
+    delete g['kind'];
+    const old = {
+      ...v1,
+      version: 1,
+      kaiju: [{ ...v1.kaiju[0], genome: g }],
+      dex: { 'guardian:fire:round': { key: 'guardian:fire:round', genome: g, count: 3, firstSeen: 5 } },
+    };
+    const s = migrateSave(old)!;
+    expect(s.kaiju[0]?.genome.kind).toBeDefined();
+    const keys = Object.keys(s.dex);
+    expect(keys).toHaveLength(1);
+    expect(keys[0]).toMatch(/^[a-z]+:fire$/);
+    expect(s.dex[keys[0]!]?.count).toBe(3);
+    expect(s.dex[keys[0]!]?.seenGuardian).toBe(true);
   });
 });
