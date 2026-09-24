@@ -366,6 +366,7 @@ export class IslandScene extends Phaser.Scene {
 
   private onTapWorld(wx: number, wy: number) {
     this.ghostGfx.clear();
+    if (this.statsPanel) return this.closeStats();
     const store = getStore(this);
     const save = store.save;
     const t = this.view.pixelToTile(wx, wy);
@@ -739,6 +740,7 @@ export class IslandScene extends Phaser.Scene {
   }
 
   private toggleBuild() {
+    if (this.statsPanel) this.closeStats();
     this.buildMode = !this.buildMode;
     const store = getStore(this);
     const L = layoutFor(this);
@@ -850,6 +852,7 @@ export class IslandScene extends Phaser.Scene {
   }
 
   private care(action: CareAction) {
+    if (this.statsPanel) this.closeStats();
     if (this.busy || this.activity) return;
     const store = getStore(this);
     const save = store.save;
@@ -1039,12 +1042,14 @@ export class IslandScene extends Phaser.Scene {
     this.time.delayedCall(700, () => this.scene.restart({ selected: store.save.kaiju.length - 1 }));
   }
 
+  private closeStats() {
+    this.statsPanel?.destroy();
+    this.statsPanel = null;
+    sfx.tap();
+  }
+
   private toggleStats() {
-    if (this.statsPanel) {
-      this.statsPanel.destroy();
-      this.statsPanel = null;
-      return;
-    }
+    if (this.statsPanel) return this.closeStats();
     const save = getStore(this).save;
     const kaiju = save.kaiju[this.selected];
     if (!kaiju) return;
@@ -1066,6 +1071,8 @@ export class IslandScene extends Phaser.Scene {
     rows.forEach(([icon, v], i) => {
       c.add(makeBar(this, x + 16, y + 52 + i * 34, w - 32, 26, { icon, color: COLORS.button, value: v, settings: save.settings }));
     });
+    // Big close button in the corner; any tap on the island closes it too.
+    c.add(makeButton(this, x + w - 4, y + 4, { icon: '✖️', label: 'Close', size: 44, settings: save.settings, onTap: () => this.closeStats() }));
     c.setDepth(500);
     this.ui.add(c);
     this.statsPanel = c;
