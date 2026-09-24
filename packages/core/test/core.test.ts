@@ -5,6 +5,7 @@ import {
   allSpeciesKeys,
   applyCare,
   attack,
+  careAvailable,
   breakRandomBlock,
   dayIndex,
   deriveStats,
@@ -34,6 +35,7 @@ import {
   structureEffects,
   typeMultiplier,
   weatherFor,
+  wanderTarget,
   type BuildLayer,
   type Kaiju,
   type Plan,
@@ -120,14 +122,22 @@ describe('care', () => {
     expect(grew).toBe('juvenile');
     expect(k.genome.size).toBeGreaterThan(0.6);
   });
-  it('a full bar still gives a little xp', () => {
+  it('a full bar still gives a little xp and is then unavailable', () => {
     let k = newMemberSave('m1', 'Test', 'seed').kaiju[0] as Kaiju;
     k = applyCare(k, 'feed').kaiju;
     k = applyCare(k, 'feed').kaiju;
+    expect(careAvailable(k, 'feed')).toBe(false);
     const xpBefore = k.growth.xp;
     const r = applyCare(k, 'feed');
     expect(r.barGain).toBe(0);
     expect(r.kaiju.growth.xp).toBe(xpBefore + 1);
+  });
+  it('actions cost a little on other bars', () => {
+    const k = newMemberSave('m1', 'Test', 'seed').kaiju[0] as Kaiju;
+    const r = applyCare(k, 'play');
+    expect(r.kaiju.care.fun).toBe(75);
+    expect(r.kaiju.care.hunger).toBe(40);
+    expect(r.kaiju.care.clean).toBe(44);
   });
 });
 
@@ -150,6 +160,14 @@ describe('world', () => {
     expect(path![path!.length - 1]).toEqual(nest);
     expect(findPath(island, from, { x: 0, y: 0 })).toBeNull();
     expect(findPath(island, from, from)).toEqual([]);
+  });
+  it('wanders to a nearby reachable tile', () => {
+    const island = generateIsland(123);
+    const rng = new Rng(4);
+    const w = wanderTarget(island, spawnTile(island), 3, () => rng.next());
+    expect(w).not.toBeNull();
+    expect(isLand(island, w!.target.x, w!.target.y)).toBe(true);
+    expect(w!.path.length).toBeGreaterThan(0);
   });
   it('is deterministic', () => {
     expect(generateIsland(5)).toEqual(generateIsland(5));

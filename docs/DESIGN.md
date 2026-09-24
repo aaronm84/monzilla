@@ -40,9 +40,18 @@ These come first. Any feature that breaks one of them is wrong.
 
 ## The core loop (always in this order)
 
-1. **Care.** Feed, wash, play, sleep. Each action moves a bar and grows the
-   kaiju. Growth is tied to care, never to a clock, so nothing decays while he
-   is away.
+1. **Care.** Feed, wash, play, sleep. Each is an activity that takes a few
+   seconds and shows: food at the mouth and chomping, bubbles, hopping
+   after a ball, lying down with floating Zs (a nap is longer and can't be
+   interrupted). The bar fills over the activity and the buttons lock
+   until it ends. A full bar disables its button with a check. Each action
+   costs a little on other bars (playing makes it hungry and dirty, eating
+   makes it sleepy and messy), so the rhythm is feed, wash, play, sleep
+   rather than one button. Growth is tied to care, never to a clock, so
+   nothing decays while he is away.
+   Kaiju are never only moved by hand: after a few idle seconds each one
+   strolls a few tiles on its own, so an island with several looks like a
+   habitat. A tap always takes over.
 2. **Build.** Snap-to-grid block building on the island, from the craft
    zoom level with the palette as a drawer. Blocks stack three high.
    Blueprints turn blocks into structures that do something (see

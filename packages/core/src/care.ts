@@ -37,8 +37,8 @@ export interface Kaiju {
 export const STAGE_XP: Record<Stage, number> = {
   egg: 0,
   hatchling: 0,
-  juvenile: 60,
-  guardian: 200,
+  juvenile: 80,
+  guardian: 300,
 };
 
 /** Size at each stage; the renderer scales the genome by this. */
@@ -49,12 +49,24 @@ export const STAGE_SIZE: Record<Stage, number> = {
   guardian: 1.4,
 };
 
-export const CARE_INFO: Record<CareAction, { icon: string; bar: keyof CareState; label: string }> = {
-  feed: { icon: '🍖', bar: 'hunger', label: 'Feed' },
-  wash: { icon: '🧼', bar: 'clean', label: 'Wash' },
-  play: { icon: '🎾', bar: 'fun', label: 'Play' },
-  sleep: { icon: '💤', bar: 'rest', label: 'Sleep' },
+/**
+ * Each care action fills its own bar and costs a little on others, so the
+ * natural rhythm is feed, wash, play, sleep rather than one button over and
+ * over. Durations are how long the activity animates; the buttons lock
+ * for that long.
+ */
+export const CARE_INFO: Record<
+  CareAction,
+  { icon: string; bar: keyof CareState; label: string; durationMs: number; costs: Partial<CareState> }
+> = {
+  feed: { icon: '🍖', bar: 'hunger', label: 'Feed', durationMs: 3200, costs: { clean: 8, rest: 4 } },
+  wash: { icon: '🧼', bar: 'clean', label: 'Wash', durationMs: 3000, costs: { fun: 4 } },
+  play: { icon: '🎾', bar: 'fun', label: 'Play', durationMs: 3400, costs: { hunger: 10, clean: 6 } },
+  sleep: { icon: '💤', bar: 'rest', label: 'Sleep', durationMs: 7000, costs: { hunger: 8 } },
 };
+
+/** A bar this full disables its button: the kaiju is done with that for now. */
+export const CARE_FULL = 95;
 
 const XP_PER_ACTION = 5;
 const BAR_GAIN = 25;
@@ -105,12 +117,22 @@ const clamp100 = (n: number) => Math.max(0, Math.min(100, n));
  * A full bar still gives a little xp so tapping never feels pointless, but
  * gives less so there is a reason to rotate through all four.
  */
+/** Whether the action is worth doing: its bar is not already full. */
+export function careAvailable(kaiju: Kaiju, action: CareAction): boolean {
+  return kaiju.care[CARE_INFO[action].bar] < CARE_FULL;
+}
+
 export function applyCare(kaiju: Kaiju, action: CareAction, bonus = 0): CareResult {
-  const bar = CARE_INFO[action].bar;
+  const info = CARE_INFO[action];
+  const bar = info.bar;
   const before = kaiju.care[bar];
   const after = clamp100(before + BAR_GAIN + bonus);
   const barGain = after - before;
   const xpGain = barGain > 0 ? XP_PER_ACTION : 1;
+  const care: CareState = { ...kaiju.care, [bar]: after };
+  for (const [k, v] of Object.entries(info.costs) as [keyof CareState, number][]) {
+    if (k !== bar) care[k] = clamp100(care[k] - v);
+  }
 
   const growth: Growth = { ...kaiju.growth, xp: kaiju.growth.xp + xpGain };
   const countKey = `${action}Count` as const;
@@ -123,7 +145,7 @@ export function applyCare(kaiju: Kaiju, action: CareAction, bonus = 0): CareResu
   const genome = grewTo ? { ...kaiju.genome, size: STAGE_SIZE[newStage] } : kaiju.genome;
 
   return {
-    kaiju: { ...kaiju, care: { ...kaiju.care, [bar]: after }, growth, genome },
+    kaiju: { ...kaiju, care, growth, genome },
     grewTo,
     barGain,
   };

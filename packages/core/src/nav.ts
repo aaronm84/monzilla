@@ -91,3 +91,26 @@ export function nestTile(island: Island): TilePos {
 export function landNeighbours(island: Island, p: TilePos): TilePos[] {
   return DIRS.map((d) => ({ x: p.x + d.x, y: p.y + d.y })).filter((n) => isLand(island, n.x, n.y));
 }
+
+/**
+ * A nearby land tile to stroll to: within `radius`, not blocked, reachable.
+ * Deterministic for a given rng so wandering can be tested.
+ */
+export function wanderTarget(
+  island: Island,
+  from: TilePos,
+  radius: number,
+  pick: () => number,
+  blocked?: (x: number, y: number) => boolean,
+): { target: TilePos; path: TilePos[] } | null {
+  for (let tries = 0; tries < 12; tries++) {
+    const dx = Math.floor(pick() * (radius * 2 + 1)) - radius;
+    const dy = Math.floor(pick() * (radius * 2 + 1)) - radius;
+    if (dx === 0 && dy === 0) continue;
+    const target = { x: from.x + dx, y: from.y + dy };
+    if (!isLand(island, target.x, target.y) || blocked?.(target.x, target.y)) continue;
+    const path = findPath(island, from, target, blocked);
+    if (path && path.length > 0 && path.length <= radius * 2) return { target, path };
+  }
+  return null;
+}

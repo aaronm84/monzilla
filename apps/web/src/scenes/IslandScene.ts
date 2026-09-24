@@ -5,6 +5,7 @@ import {
   BLUEPRINTS,
   MAX_STACK,
   CARE_ACTIONS,
+  CARE_FULL,
   CARE_INFO,
   KIND_INFO,
   STAGES,
@@ -12,6 +13,7 @@ import {
   WEATHER_INFO,
   applyCare,
   blockKey,
+  careAvailable,
   brokenBlocks,
   dayIndex,
   dexProgress,
@@ -36,6 +38,7 @@ import {
   repairBlock,
   spawnTile,
   structureEffects,
+  wanderTarget,
   weatherFor,
   type BlockKind,
   type Blueprint,
@@ -53,6 +56,7 @@ import { IslandCamera } from '../game/camera.js';
 import { COLORS, FONT, burst, floatText, handleResize, label, layoutFor, makeBar, makeButton, panel, type Bar, type Button } from '../game/ui.js';
 import { drawEgg } from '../render/kaiju.js';
 import { createKaiju, kaijuAnchor, kaijuContains } from '../render/kaijuSprite.js';
+import { Rng } from '@monzilla/core';
 import { attachMotion, presetFor, type Motion } from '../render/motion.js';
 import { getParts } from '../render/parts.js';
 import { drawBlocks, drawIslandTiles, drawPlanGhost, drawStructureBadge, type IslandView } from '../render/island.js';
@@ -95,7 +99,13 @@ export class IslandScene extends Phaser.Scene {
   private ghostGfx!: Phaser.GameObjects.Graphics;
   private kaijuSprites = new Map<string, Phaser.GameObjects.Container>();
   private motions = new Map<string, Motion>();
-  private walking = false;
+  /** Kaiju ids currently walking (player-directed or wandering). */
+  private walkers = new Set<string>();
+  private wanderTimers = new Map<string, Phaser.Time.TimerEvent>();
+  private wanderRng = new Rng(Date.now());
+  /** A care activity in progress: the buttons lock until it ends. */
+  private activity: { action: CareAction; kaijuId: string } | null = null;
+  private activityBar: Bar | null = null;
   private careBars: Partial<Record<CareAction, Bar>> = {};
   private growthBar: Bar | null = null;
   private careButtons: Partial<Record<CareAction, Button>> = {};
@@ -135,6 +145,10 @@ export class IslandScene extends Phaser.Scene {
     this.island = generateIsland(save.seed);
     this.kaijuSprites.clear();
     this.motions.clear();
+    this.walkers.clear();
+    this.wanderTimers.clear();
+    this.activity = null;
+    this.activityBar = null;
     this.careBars = {};
     this.careButtons = {};
     this.toolButtons = {};
@@ -216,8 +230,11 @@ export class IslandScene extends Phaser.Scene {
       }
     }
 
-    // Kaiju standing on the island.
-    for (const k of save.kaiju) this.addKaijuSprite(k);
+    // Kaiju standing on the island. Each one strolls on its own after a while.
+    for (const k of save.kaiju) {
+      this.addKaijuSprite(k);
+      this.scheduleWander(k.id);
+    }
 
     // --- Camera -------------------------------------------------------------
     const margin = TILE * 2;
@@ -380,41 +397,63 @@ export class IslandScene extends Phaser.Scene {
   }
 
   private walkTo(x: number, y: number, onArrive?: () => void) {
-    if (this.walking) return;
+    const me = getStore(this).save.kaiju[this.selected];
+    if (!me) return;
+    this.walkKaiju(me.id, x, y, onArrive, true);
+  }
+
+  /**
+   * Walk a kaiju over land to a tile, one hop per step. Player-directed
+   * walks interrupt a wander; a wander never interrupts a player walk or an
+   * activity. Position saves on arrival.
+   */
+  private walkKaiju(id: string, x: number, y: number, onArrive?: () => void, byPlayer = false) {
     const store = getStore(this);
-    const me = store.save.kaiju[this.selected];
+    const me = store.save.kaiju.find((k) => k.id === id);
     const sprite = me && this.kaijuSprites.get(me.id);
     if (!me || !sprite) return;
+    if (this.activity?.kaijuId === id) return;
+    if (this.walkers.has(id)) {
+      if (!byPlayer) return;
+      // Player tap while wandering: the current step finishes, then this walk takes over.
+      this.pendingWalk.set(id, { x, y, onArrive });
+      return;
+    }
     const from = me.pos ?? spawnTile(this.island);
     if (!isLand(this.island, x, y)) {
-      floatText(this, x * TILE + TILE / 2, y * TILE, '🌊', '#ffffff', store.save.settings, 28, this.world);
+      if (byPlayer) floatText(this, x * TILE + TILE / 2, y * TILE, '🌊', '#ffffff', store.save.settings, 28, this.world);
       return;
     }
     const blocks = store.save.blocks;
     const path = findPath(this.island, from, { x, y }, (bx, by) => Boolean(blocks[blockKey(bx, by)]));
     if (!path) {
-      floatText(this, x * TILE + TILE / 2, y * TILE, '🚧', '#ffffff', store.save.settings, 28, this.world);
+      if (byPlayer) floatText(this, x * TILE + TILE / 2, y * TILE, '🚧', '#ffffff', store.save.settings, 28, this.world);
       return;
     }
     if (path.length === 0) {
       onArrive?.();
       return;
     }
-    this.walking = true;
+    this.walkers.add(id);
+    this.cancelWander(id);
     const settings = store.save.settings;
-    const stepMs = settings.reduceMotion ? 60 : 170;
-    this.motions.get(me.id)?.stop();
+    const stepMs = settings.reduceMotion ? 60 : byPlayer ? 170 : 260;
+    this.motions.get(id)?.stop();
     let i = 0;
+    const finish = (fx: number, fy: number) => {
+      this.walkers.delete(id);
+      store.update((st) => ({ ...st, kaiju: st.kaiju.map((k) => (k.id === id ? { ...k, pos: { x: fx, y: fy } } : k)) }));
+      this.motions.set(id, attachMotion(this, sprite, presetFor(me.genome.kind, getParts(this).get(me.genome.kind)?.motion), settings));
+      if (id === store.save.kaiju[this.selected]?.id) this.updateGlow(store.save);
+      const pending = this.pendingWalk.get(id);
+      this.pendingWalk.delete(id);
+      if (pending) return this.walkKaiju(id, pending.x, pending.y, pending.onArrive, true);
+      onArrive?.();
+      this.scheduleWander(id);
+    };
     const step = () => {
       const p = path[i];
-      if (!p) {
-        this.walking = false;
-        store.update((s) => ({ ...s, kaiju: s.kaiju.map((k) => (k.id === me.id ? { ...k, pos: { x, y } } : k)) }));
-        this.motions.set(me.id, attachMotion(this, sprite, presetFor(me.genome.kind, getParts(this).get(me.genome.kind)?.motion), settings));
-        this.updateGlow(store.save);
-        onArrive?.();
-        return;
-      }
+      if (!p) return finish(x, y);
       const px = this.view.tileToPixel(p.x, p.y);
       const facing = px.x < sprite.x ? -1 : px.x > sprite.x ? 1 : Math.sign(sprite.scaleX) || 1;
       sprite.setScale(facing, 1); // flip the whole creature; parts come along
@@ -428,15 +467,43 @@ export class IslandScene extends Phaser.Scene {
         ease: 'Linear',
         onComplete: () => {
           i++;
+          // A player tap mid-wander redirects at the next tile.
+          if (!byPlayer && this.pendingWalk.has(id)) return finish(p.x, p.y);
           step();
         },
       });
-      if (!settings.reduceMotion) {
-        this.tweens.add({ targets: sprite, scaleY: 0.92, duration: stepMs / 2, yoyo: true });
-      }
-      if (i % 2 === 0) sfx.tap();
+      if (!settings.reduceMotion) this.tweens.add({ targets: sprite, scaleY: 0.92, duration: stepMs / 2, yoyo: true });
+      if (byPlayer && i % 2 === 0) sfx.tap();
     };
     step();
+  }
+
+  private pendingWalk = new Map<string, { x: number; y: number; onArrive?: () => void }>();
+
+  /** After some idle time a kaiju strolls a few tiles. Not while building. */
+  private scheduleWander(id: string) {
+    this.cancelWander(id);
+    const delay = 4000 + this.wanderRng.next() * 6000;
+    this.wanderTimers.set(id, this.time.delayedCall(delay, () => this.wander(id)));
+  }
+
+  private cancelWander(id: string) {
+    this.wanderTimers.get(id)?.remove(false);
+    this.wanderTimers.delete(id);
+  }
+
+  private wander(id: string) {
+    this.wanderTimers.delete(id);
+    if (this.buildMode || this.walkers.has(id) || this.activity?.kaijuId === id) return this.scheduleWander(id);
+    const store = getStore(this);
+    const me = store.save.kaiju.find((k) => k.id === id);
+    if (!me) return;
+    const from = me.pos ?? spawnTile(this.island);
+    const blocks = store.save.blocks;
+    const occupied = new Set(store.save.kaiju.filter((k) => k.id !== id && k.pos).map((k) => blockKey(k.pos!.x, k.pos!.y)));
+    const w = wanderTarget(this.island, from, 3, () => this.wanderRng.next(), (bx, by) => Boolean(blocks[blockKey(bx, by)]) || occupied.has(blockKey(bx, by)));
+    if (!w) return this.scheduleWander(id);
+    this.walkKaiju(id, w.target.x, w.target.y);
   }
 
   private planAt(bp: Blueprint, x: number, y: number): Plan {
@@ -625,8 +692,9 @@ export class IslandScene extends Phaser.Scene {
     const startX = L.w / 2 - totalW / 2 + L.btn / 2;
     const careY = L.h - L.pad - L.btn / 2;
     CARE_ACTIONS.forEach((action, i) => {
+      const full = !!kaiju && !careAvailable(kaiju, action);
       const b = makeButton(this, startX + i * (L.btn + gap), careY, {
-        icon: CARE_INFO[action].icon, label: CARE_INFO[action].label, size: L.btn, color: COLORS[action], settings: save.settings, disabled: !kaiju,
+        icon: CARE_INFO[action].icon, label: CARE_INFO[action].label, size: L.btn, color: COLORS[action], settings: save.settings, disabled: !kaiju || full, sub: full ? '✅' : '',
         onTap: () => this.care(action),
       });
       this.careButtons[action] = b;
@@ -684,6 +752,7 @@ export class IslandScene extends Phaser.Scene {
       this.stamping = null;
       this.camera.setPanEnabled(true);
       if (this.camera.level === 2) this.camera.setLevel(1);
+      for (const k of store.save.kaiju) this.scheduleWander(k.id);
     }
     this.buildBtn.setGlow(this.buildMode);
     this.redrawBlocks();
@@ -777,62 +846,170 @@ export class IslandScene extends Phaser.Scene {
     if (egg && eggReady(egg)) return;
     if (brokenBlocks(save.blocks).length > 0) return this.buildBtn.setGlow(true);
     if (kaiju && (save.activeBattle || save.lastVillainDay !== dayIndex())) return this.alarmBtn.setGlow(true);
-    if (kaiju) this.careButtons[neediestCare(kaiju.care)]?.setGlow(true);
+    if (kaiju && !this.activity) this.careButtons[neediestCare(kaiju.care)]?.setGlow(true);
   }
 
   private care(action: CareAction) {
-    if (this.busy) return;
+    if (this.busy || this.activity) return;
     const store = getStore(this);
     const save = store.save;
     const kaiju = save.kaiju[this.selected];
     if (!kaiju) return;
+    if (!careAvailable(kaiju, action)) {
+      const sprite = this.kaijuSprites.get(kaiju.id);
+      if (sprite) floatText(this, sprite.x, sprite.y - TILE, '✅', '#ffffff', save.settings, 30, this.world);
+      return;
+    }
     // Sleep in a habitat if one stands: walk there first, then a bigger nap.
     const fx = structureEffects(this.structures);
     const habitat = fx.habitats[0];
-    if (action === 'sleep' && habitat && !this.walking) {
+    if (action === 'sleep' && habitat && !this.walkers.has(kaiju.id)) {
       const pos = kaiju.pos ?? spawnTile(this.island);
       const door = { x: habitat.x, y: habitat.y + 2 };
       const there = pos.x === door.x && pos.y === door.y;
       if (!there && isLand(this.island, door.x, door.y) && !save.blocks[blockKey(door.x, door.y)]) {
-        this.walkTo(door.x, door.y, () => this.applyCareNow('sleep', fx.restBonus));
+        this.lockCare(true);
+        this.walkTo(door.x, door.y, () => this.startActivity('sleep', fx.restBonus));
         return;
       }
     }
-    this.applyCareNow(action, action === 'sleep' ? fx.restBonus : 0);
+    this.startActivity(action, action === 'sleep' ? fx.restBonus : 0);
   }
 
-  private applyCareNow(action: CareAction, bonus: number) {
+  private lockCare(locked: boolean) {
+    const save = getStore(this).save;
+    const kaiju = save.kaiju[this.selected];
+    for (const action of CARE_ACTIONS) {
+      const b = this.careButtons[action];
+      if (!b) continue;
+      const full = !!kaiju && !careAvailable(kaiju, action);
+      b.setDisabledState(locked || !kaiju || full);
+      b.setSub(full ? '✅' : '');
+    }
+  }
+
+  /**
+   * A care activity: the kaiju visibly eats, bathes, plays, or sleeps for a
+   * few seconds while its bar fills, and the buttons stay locked. The save
+   * is updated up front so leaving mid-activity loses nothing.
+   */
+  private startActivity(action: CareAction, bonus: number) {
     const store = getStore(this);
     const save = store.save;
     const kaiju = save.kaiju[this.selected];
-    if (!kaiju) return;
-    const result = applyCare(kaiju, action, bonus);
-    const next = store.update((s) => ({ ...s, kaiju: s.kaiju.map((k, i) => (i === this.selected ? result.kaiju : k)) }));
-
+    const sprite = kaiju && this.kaijuSprites.get(kaiju.id);
+    if (!kaiju || !sprite || this.activity) return;
     const info = CARE_INFO[action];
-    this.careBars[action]?.setValue(result.kaiju.care[info.bar]);
-    this.growthBar?.setValue(Math.round(growthProgress(result.kaiju.growth) * 100));
-    ({ feed: () => sfx.chomp(), wash: () => sfx.splash(), play: () => sfx.boing(), sleep: () => sfx.snore() })[action]();
-    const sprite = this.kaijuSprites.get(kaiju.id);
-    if (sprite) {
-      const head = kaijuAnchor(sprite, 'head');
-      floatText(this, head.x, head.y - TILE * 0.5, result.barGain > 0 ? `+${result.barGain}` : '+1', result.barGain > 0 ? '#a5d6a7' : '#ffffff', save.settings, 30, this.world);
-      const m = this.motions.get(kaiju.id);
-      if (action === 'play') m?.hop();
-      else m?.squash();
+    const settings = save.settings;
+    const duration = settings.reduceMotion ? Math.round(info.durationMs * 0.4) : info.durationMs;
+    this.activity = { action, kaijuId: kaiju.id };
+    this.lockCare(true);
+    this.cancelWander(kaiju.id);
+    this.motions.get(kaiju.id)?.stop();
+
+    const result = applyCare(kaiju, action, bonus);
+    store.update((s) => ({ ...s, kaiju: s.kaiju.map((k, i) => (i === this.selected ? result.kaiju : k)) }));
+
+    // Bars: the acted-on bar fills over the activity; costs drop at the start.
+    for (const a of CARE_ACTIONS) {
+      if (a === action) continue;
+      this.careBars[a]?.setValue(result.kaiju.care[CARE_INFO[a].bar]);
+    }
+    const from = kaiju.care[info.bar];
+    const to = result.kaiju.care[info.bar];
+    const proxy = { v: from };
+    this.tweens.add({ targets: proxy, v: to, duration, ease: 'Linear', onUpdate: () => this.careBars[action]?.setValue(proxy.v) });
+
+    // Progress ring under the kaiju so the wait reads as "busy", not "broken".
+    const L = layoutFor(this);
+    const barW = L.compact ? 90 : 120;
+    this.activityBar = makeBar(this, sprite.x - barW / 2, sprite.y + TILE * 0.55, barW, 12, { color: COLORS[action], value: 0, max: 100, showNumber: false, settings });
+    this.world.add(this.activityBar);
+    const prog = { v: 0 };
+    this.tweens.add({ targets: prog, v: 100, duration, ease: 'Linear', onUpdate: () => this.activityBar?.setValue(prog.v) });
+
+    const head = kaijuAnchor(sprite, 'head');
+    const mouth = kaijuAnchor(sprite, 'mouth');
+    const timers: Phaser.Time.TimerEvent[] = [];
+    const every = (ms: number, fn: () => void) => timers.push(this.time.addEvent({ delay: ms, loop: true, callback: fn }));
+    const emoji = (x: number, y: number, t: string, size = 30) => {
+      const txt = this.add.text(x, y, t, { fontSize: `${size}px`, fontFamily: FONT }).setOrigin(0.5).setDepth(sprite.depth + 0.5);
+      this.world.add(txt); // Container.add returns the container, so keep the text itself
+      return txt;
+    };
+
+    if (action === 'feed') {
+      const food = emoji(mouth.x + 10 * Math.sign(sprite.scaleX), mouth.y + 6, '🍖', 34);
+      const bites = 5;
+      let n = 0;
+      every(duration / (bites + 1), () => {
+        n++;
+        sfx.chomp();
+        this.motions.get(kaiju.id); // idle is stopped; do a direct squash
+        if (!settings.reduceMotion) this.tweens.add({ targets: sprite, scaleY: 0.88, duration: 90, yoyo: true });
+        food.setScale(Math.max(0.25, 1 - n / bites));
+        if (n >= bites) food.setVisible(false);
+      });
+      this.events.once('activity-done', () => food.destroy());
+    } else if (action === 'wash') {
+      every(350, () => {
+        const b = emoji(sprite.x + (this.wanderRng.next() - 0.5) * TILE * 1.2, sprite.y + (this.wanderRng.next() - 0.2) * TILE * 0.6, '🫧', 22);
+        this.tweens.add({ targets: b, y: b.y - 50, alpha: 0, duration: 900, onComplete: () => b.destroy() });
+      });
+      sfx.splash();
+      every(1100, () => sfx.splash());
+      if (!settings.reduceMotion) this.tweens.add({ targets: sprite, x: sprite.x + 4, duration: 120, yoyo: true, repeat: Math.floor(duration / 240) });
+    } else if (action === 'play') {
+      const ball = emoji(sprite.x + TILE * 0.7 * Math.sign(sprite.scaleX), sprite.y, '🎾', 26);
+      const hops = Math.max(2, Math.floor(duration / 700));
+      every(700, () => {
+        sfx.boing();
+        if (!settings.reduceMotion) {
+          this.tweens.add({ targets: sprite, y: sprite.y - 22, duration: 170, yoyo: true, ease: 'Quad.easeOut' });
+          this.tweens.add({ targets: ball, y: ball.y - 60, duration: 330, yoyo: true, ease: 'Quad.easeOut' });
+        }
+      });
+      void hops;
+      this.events.once('activity-done', () => ball.destroy());
+    } else {
+      // Sleep: lie down, float Zs, stay down until the nap is over.
+      if (!settings.reduceMotion) this.tweens.add({ targets: sprite, scaleY: 0.72, scaleX: sprite.scaleX * 1.12, y: sprite.y + TILE * 0.12, duration: 500, ease: 'Sine.easeOut' });
+      sfx.snore();
+      every(1400, () => {
+        const z = emoji(head.x + 14 * Math.sign(sprite.scaleX), head.y - 10, '💤', 26);
+        this.tweens.add({ targets: z, y: z.y - 46, x: z.x + 12, alpha: 0, duration: 1300, onComplete: () => z.destroy() });
+        sfx.snore();
+      });
     }
 
-    if (result.grewTo) {
-      this.busy = true;
-      sfx.grow();
-      if (sprite) burst(this, sprite.x, sprite.y, COLORS.star, save.settings, 30, this.world);
-      this.time.delayedCall(900, () => {
-        this.busy = false;
-        this.scene.restart({ selected: this.selected, build: this.buildMode });
-      });
-    } else {
-      this.updateGlow(next);
-    }
+    this.time.delayedCall(duration, () => {
+      for (const t of timers) t.remove(false);
+      this.events.emit('activity-done');
+      this.activityBar?.destroy();
+      this.activityBar = null;
+      this.activity = null;
+      if (action === 'sleep' && !settings.reduceMotion) {
+        this.tweens.add({ targets: sprite, scaleY: 1, scaleX: Math.sign(sprite.scaleX), y: sprite.y - TILE * 0.12, duration: 400, ease: 'Back.easeOut' });
+      } else {
+        sprite.setScale(Math.sign(sprite.scaleX) || 1, 1);
+      }
+      this.growthBar?.setValue(Math.round(growthProgress(result.kaiju.growth) * 100));
+      floatText(this, head.x, head.y - TILE * 0.4, result.barGain > 0 ? `+${result.barGain}` : '+1', result.barGain > 0 ? '#a5d6a7' : '#ffffff', settings, 30, this.world);
+      if (result.grewTo) {
+        this.busy = true;
+        sfx.grow();
+        burst(this, sprite.x, sprite.y, COLORS.star, settings, 30, this.world);
+        this.time.delayedCall(900, () => {
+          this.busy = false;
+          this.scene.restart({ selected: this.selected, build: this.buildMode });
+        });
+        return;
+      }
+      this.motions.set(kaiju.id, attachMotion(this, sprite, presetFor(kaiju.genome.kind, getParts(this).get(kaiju.genome.kind)?.motion), settings));
+      this.lockCare(false);
+      this.updateGlow(store.save);
+      this.scheduleWander(kaiju.id);
+    });
   }
 
   private hatch() {
