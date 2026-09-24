@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { Settings } from '@monzilla/core';
+import { KINDS, STAGE_SIZE, STAGE_XP, TYPES, Rng, freeTileNear, generateGenome, generateIsland, newCareState, newGrowth, recordInDex, spawnTile, type Kaiju, type Settings, type Stage } from '@monzilla/core';
 import { getSession, getStore, setSession } from '../game/ctx.js';
 import { connectFirebase, firebaseConfigured, signInWithGoogle } from '../game/firebase.js';
 import { COLORS, FONT, handleResize, label, layoutFor, makeButton, panel } from '../game/ui.js';
@@ -115,6 +115,33 @@ export class SettingsScene extends Phaser.Scene {
       icon: '🎁',
       text: 'Gift 3 stars (reward)',
       onTap: () => store.update((sv) => ({ ...sv, stars: sv.stars + 3 })),
+    });
+    actions.push({
+      icon: '🥚',
+      text: 'Gift a surprise kaiju (random kind, type, stage)',
+      onTap: () => {
+        const rng = new Rng(Date.now());
+        const stage: Stage = rng.pick(['hatchling', 'juvenile', 'guardian'] as const);
+        const genome = generateGenome(rng, { alignment: 'guardian', kind: rng.pick(KINDS), type: rng.pick(TYPES) });
+        genome.size = STAGE_SIZE[stage];
+        const growth = newGrowth(stage);
+        growth.xp = STAGE_XP[stage];
+        const island = generateIsland(store.save.seed);
+        const spawn = spawnTile(island);
+        const taken = new Set(store.save.kaiju.filter((x) => x.pos).map((x) => `${x.pos!.x},${x.pos!.y}`));
+        const pos = freeTileNear(island, { x: spawn.x + rng.int(-2, 2), y: spawn.y + rng.int(-2, 2) }, (x, y) => taken.has(`${x},${y}`) || Boolean(store.save.blocks[`${x},${y}`]));
+        const k: Kaiju = {
+          id: `k_${rng.seed.toString(36)}`,
+          name: '',
+          genome,
+          care: newCareState(),
+          growth,
+          createdAt: Date.now(),
+          pos,
+        };
+        store.update((sv) => ({ ...sv, kaiju: [...sv.kaiju, k], dex: recordInDex(sv.dex, genome) }));
+        this.scene.start('Island', { selected: store.save.kaiju.length - 1 });
+      },
     });
     for (const a of actions) {
       makeButton(this, x + L.pad + rowH * 0.4, y + rowH * 0.4, { icon: a.icon, label: a.text, size: rowH * 0.8, settings: s, onTap: a.onTap });

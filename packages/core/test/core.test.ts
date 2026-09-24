@@ -12,6 +12,7 @@ import {
   eggReady,
   findPath,
   findStructures,
+  freeTileNear,
   generateIsland,
   generateVillain,
   genomeFromSeed,
@@ -160,6 +161,15 @@ describe('world', () => {
     expect(path![path!.length - 1]).toEqual(nest);
     expect(findPath(island, from, { x: 0, y: 0 })).toBeNull();
     expect(findPath(island, from, from)).toEqual([]);
+  });
+  it('finds the nearest free land tile', () => {
+    const island = generateIsland(123);
+    const sp = spawnTile(island);
+    const t = freeTileNear(island, sp, (x, y) => x === sp.x && y === sp.y);
+    expect(t).not.toEqual(sp);
+    expect(isLand(island, t.x, t.y)).toBe(true);
+    expect(Math.abs(t.x - sp.x) + Math.abs(t.y - sp.y)).toBe(1);
+    expect(isLand(island, freeTileNear(island, { x: 0, y: 0 }).x, freeTileNear(island, { x: 0, y: 0 }).y)).toBe(true);
   });
   it('wanders to a nearby reachable tile', () => {
     const island = generateIsland(123);

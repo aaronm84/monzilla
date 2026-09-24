@@ -114,3 +114,21 @@ export function wanderTarget(
   }
   return null;
 }
+
+/** Nearest land tile to `from` that is not blocked, searching outward. */
+export function freeTileNear(island: Island, from: TilePos, blocked?: (x: number, y: number) => boolean): TilePos {
+  const seen = new Set<string>();
+  const queue: TilePos[] = [from];
+  while (queue.length > 0) {
+    const p = queue.shift()!;
+    const k = `${p.x},${p.y}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    if (isLand(island, p.x, p.y) && !blocked?.(p.x, p.y)) return p;
+    for (const d of DIRS) {
+      const n = { x: p.x + d.x, y: p.y + d.y };
+      if (n.x >= 0 && n.y >= 0 && n.x < island.width && n.y < island.height) queue.push(n);
+    }
+  }
+  return from;
+}
