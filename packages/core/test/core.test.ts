@@ -5,30 +5,38 @@ import {
   allSpeciesKeys,
   applyCare,
   attack,
+  breakRandomBlock,
   dayIndex,
   deriveStats,
   eggReady,
   findPath,
+  findStructures,
   generateIsland,
   generateVillain,
   genomeFromSeed,
   hatchGenome,
   isLand,
   kaijuStats,
+  lineTiles,
   migrateSave,
   movesFor,
   nestTile,
   newMemberSave,
   placeBlock,
+  planComplete,
+  removeBlock,
   repairBlock,
   rosterById,
   rosterGenome,
   spawnTile,
   startBattle,
   statTotal,
+  structureEffects,
   typeMultiplier,
   weatherFor,
+  type BuildLayer,
   type Kaiju,
+  type Plan,
 } from '../src/index.js';
 
 describe('rng', () => {
@@ -146,14 +154,66 @@ describe('world', () => {
   it('is deterministic', () => {
     expect(generateIsland(5)).toEqual(generateIsland(5));
   });
-  it('places and repairs blocks only on land', () => {
+  it('places, stacks, and repairs blocks only on land', () => {
     const island = generateIsland(123);
     let layer = placeBlock({}, island, 0, 0, 'stone');
     expect(Object.keys(layer)).toHaveLength(0);
     layer = placeBlock(layer, island, 16, 12, 'stone');
-    expect(layer['16,12']?.kind).toBe('stone');
+    layer = placeBlock(layer, island, 16, 12, 'stone');
+    layer = placeBlock(layer, island, 16, 12, 'tower');
+    layer = placeBlock(layer, island, 16, 12, 'tower'); // over the limit, ignored
+    expect(layer['16,12']?.kinds).toEqual(['stone', 'stone', 'tower']);
+    layer = removeBlock(layer, 16, 12);
+    expect(layer['16,12']?.kinds).toEqual(['stone', 'stone']);
     layer = { ...layer, '16,12': { ...layer['16,12']!, broken: true } };
     expect(repairBlock(layer, 16, 12)['16,12']?.broken).toBe(false);
+  });
+  it('draws straight lines along the dominant axis', () => {
+    expect(lineTiles({ x: 2, y: 2 }, { x: 5, y: 3 })).toEqual([{ x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 5, y: 2 }]);
+    expect(lineTiles({ x: 2, y: 5 }, { x: 2, y: 3 })).toHaveLength(3);
+  });
+  it('recognises structures and their effects', () => {
+    const island = generateIsland(123);
+    let layer: BuildLayer = {};
+    // habitat at 15,11
+    for (const [x, y] of [[15, 11], [16, 11], [15, 12], [16, 12]] as const) {
+      layer = placeBlock(layer, island, x, y, 'wood');
+      layer = placeBlock(layer, island, x, y, 'roof');
+    }
+    // wall of four along y=14
+    for (let x = 14; x <= 17; x++) {
+      layer = placeBlock(layer, island, x, 14, 'stone');
+      layer = placeBlock(layer, island, x, 14, 'stone');
+    }
+    // watchtower at 18,12
+    layer = placeBlock(layer, island, 18, 12, 'stone');
+    layer = placeBlock(layer, island, 18, 12, 'stone');
+    layer = placeBlock(layer, island, 18, 12, 'tower');
+    const found = findStructures(layer);
+    expect(found.map((s) => s.id).sort()).toEqual(['habitat', 'wall', 'watchtower']);
+    expect(found.find((s) => s.id === 'wall')?.tiles).toHaveLength(4);
+    const fx = structureEffects(found);
+    expect(fx.restBonus).toBe(10);
+    expect(fx.breakChance).toBeCloseTo(0.4);
+    expect(fx.wallTiles.has('15,14')).toBe(true);
+    // a broken wall tile splits the run below the minimum
+    const cracked = { ...layer, '16,14': { ...layer['16,14']!, broken: true } };
+    expect(findStructures(cracked).filter((s) => s.id === 'wall')).toHaveLength(0);
+    // plans
+    const plan: Plan = { id: 'watchtower', x: 18, y: 12 };
+    expect(planComplete(plan, layer)).toBe(true);
+    expect(planComplete({ id: 'wall', x: 14, y: 14, length: 4, axis: 'x' }, layer)).toBe(true);
+    expect(planComplete({ id: 'wall', x: 14, y: 14, length: 5, axis: 'x' }, layer)).toBe(false);
+  });
+  it('villains hit walls first', () => {
+    const island = generateIsland(123);
+    let layer = placeBlock({}, island, 15, 11, 'flower');
+    for (let x = 14; x <= 16; x++) { layer = placeBlock(layer, island, x, 14, 'stone'); layer = placeBlock(layer, island, x, 14, 'stone'); }
+    const fx = structureEffects(findStructures(layer));
+    for (let s = 0; s < 10; s++) {
+      const r = breakRandomBlock(layer, new Rng(s), { breakChance: 1, preferred: fx.wallTiles });
+      expect(r.broken?.y).toBe(14);
+    }
   });
 });
 
@@ -170,6 +230,7 @@ describe('battle', () => {
     const guardian = save.kaiju[0]!;
     const island = generateIsland(save.seed);
     let blocks = placeBlock({}, island, 16, 12, 'stone');
+    expect(blocks['16,12']?.kinds).toEqual(['stone']);
     const villain = generateVillain(new Rng(9), {
       weather: 'sunny',
       biome: 'forest',
@@ -238,13 +299,15 @@ describe('save', () => {
     const s = migrateSave({ version: 1, memberId: 'x', name: 'x', seed: 1 });
     expect(s?.settings.reduceMotion).toBe(false);
     expect(s?.kaiju).toEqual([]);
-    expect(s?.version).toBe(3);
+    expect(s?.version).toBe(4);
   });
   it('moves v2 blocks to the centre of the bigger island and places kaiju', () => {
     const fresh = newMemberSave('m', 'T', 'seed');
     const old = { ...fresh, version: 2, blocks: { '8,6': { x: 8, y: 6, kind: 'stone', broken: false } }, kaiju: fresh.kaiju.map((k) => ({ ...k, pos: undefined })) };
     const s = migrateSave(old)!;
     expect(Object.keys(s.blocks)).toEqual(['16,12']);
+    expect(s.blocks['16,12']?.kinds).toEqual(['stone']);
+    expect(s.plans).toEqual([]);
     expect(s.kaiju[0]?.pos).toBeDefined();
   });
   it('starts with Tidalon the lizard', () => {

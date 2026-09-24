@@ -11,6 +11,12 @@ export interface CameraOptions {
   onHover?: (worldX: number, worldY: number) => void;
   onZoomChange?: (zoom: number, level: number) => void;
   reduceMotion?: boolean;
+  /**
+   * When panning is off (build mode with a block tool), a one-finger drag
+   * is reported here instead of moving the camera, in world coords.
+   */
+  onDrag?: (startX: number, startY: number, x: number, y: number) => void;
+  onDragEnd?: (startX: number, startY: number, x: number, y: number) => void;
 }
 
 /**
@@ -29,6 +35,8 @@ export class IslandCamera {
   private pinchStart = 0;
   private pinchZoom = 1;
   private pinching = false;
+  private panEnabled = true;
+  private dragStartWorld = { x: 0, y: 0 };
   level = 0;
 
   constructor(
@@ -55,6 +63,11 @@ export class IslandCamera {
 
   get zoom() {
     return this.cam.zoom;
+  }
+
+  /** Off: one-finger drags draw instead of panning. Pinch and buttons still zoom. */
+  setPanEnabled(on: boolean) {
+    this.panEnabled = on;
   }
 
   /**
@@ -121,6 +134,7 @@ export class IslandCamera {
     this.startY = pointer.y;
     this.scrollStartX = this.cam.scrollX;
     this.scrollStartY = this.cam.scrollY;
+    this.dragStartWorld = { x: pointer.worldX, y: pointer.worldY };
   }
 
   private onMove(pointer: Phaser.Input.Pointer) {
@@ -143,7 +157,8 @@ export class IslandCamera {
     const dy = pointer.y - this.startY;
     if (!this.moved && Math.hypot(dx, dy) > 8) this.moved = true;
     if (this.moved) {
-      this.cam.setScroll(this.scrollStartX - dx / this.cam.zoom, this.scrollStartY - dy / this.cam.zoom);
+      if (this.panEnabled) this.cam.setScroll(this.scrollStartX - dx / this.cam.zoom, this.scrollStartY - dy / this.cam.zoom);
+      else this.opts.onDrag?.(this.dragStartWorld.x, this.dragStartWorld.y, pointer.worldX, pointer.worldY);
     } else {
       this.opts.onHover?.(pointer.worldX, pointer.worldY);
     }
@@ -162,6 +177,7 @@ export class IslandCamera {
     if (!this.dragging) return;
     this.dragging = false;
     if (!this.moved && !this.uiHit(pointer)) this.opts.onTap(pointer.worldX, pointer.worldY);
+    else if (this.moved && !this.panEnabled) this.opts.onDragEnd?.(this.dragStartWorld.x, this.dragStartWorld.y, pointer.worldX, pointer.worldY);
   }
 
   private onWheel(pointer: Phaser.Input.Pointer, _objs: unknown, _dx: number, dy: number) {

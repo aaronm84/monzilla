@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import {
   BLOCK_INFO,
   BLOCK_KINDS,
+  BLUEPRINTS,
+  MAX_STACK,
   CARE_ACTIONS,
   CARE_INFO,
   KIND_INFO,
@@ -15,26 +17,35 @@ import {
   dexProgress,
   eggReady,
   findPath,
+  findStructures,
   generateIsland,
   growthProgress,
   hatchGenome,
   isLand,
   kaijuStats,
+  lineTiles,
   neediestCare,
   nestTile,
   newCareState,
   newGrowth,
   placeBlock,
+  planCells,
+  planComplete,
   recordInDex,
   removeBlock,
   repairBlock,
   spawnTile,
+  structureEffects,
   weatherFor,
   type BlockKind,
+  type Blueprint,
+  type BuildLayer,
   type CareAction,
   type Island,
   type Kaiju,
   type MemberSave,
+  type Plan,
+  type Structure,
 } from '@monzilla/core';
 import { getStore } from '../game/ctx.js';
 import { sfx } from '../game/audio.js';
@@ -44,13 +55,14 @@ import { drawEgg } from '../render/kaiju.js';
 import { createKaiju, kaijuAnchor, kaijuContains } from '../render/kaijuSprite.js';
 import { attachMotion, presetFor, type Motion } from '../render/motion.js';
 import { getParts } from '../render/parts.js';
-import { drawBlocks, drawIslandTiles, type IslandView } from '../render/island.js';
+import { drawBlocks, drawIslandTiles, drawPlanGhost, drawStructureBadge, type IslandView } from '../render/island.js';
 
 const STAGE_ICON: Record<string, string> = { egg: '🥚', hatchling: '🐣', juvenile: '🦎', guardian: '🦖' };
 
 /** World units per tile. The camera zooms the whole world, so this is fixed. */
 const TILE = 64;
-type Tool = BlockKind | 'erase';
+type Tool = BlockKind | 'erase' | 'hand';
+const STRUCTURE_COLOR: Record<Structure['id'], number> = { habitat: 0xffb300, wall: 0x78909c, watchtower: 0x42a5f5 };
 
 /**
  * Home screen. One island in the world layer with the kaiju living on it,
@@ -76,8 +88,8 @@ export class IslandScene extends Phaser.Scene {
   private ui!: Phaser.GameObjects.Container;
   private uiCam!: Phaser.Cameras.Scene2D.Camera;
   private camera!: IslandCamera;
-  private islandGfx!: Phaser.GameObjects.Graphics;
   private islandRt!: Phaser.GameObjects.RenderTexture;
+  private chunks: Phaser.GameObjects.RenderTexture[] = [];
   private blocksGfx!: Phaser.GameObjects.Graphics;
   private gridGfx!: Phaser.GameObjects.Graphics;
   private ghostGfx!: Phaser.GameObjects.Graphics;
@@ -97,8 +109,13 @@ export class IslandScene extends Phaser.Scene {
   private buildMode = false;
   private tool: Tool = 'stone';
   private toolButtons: Partial<Record<Tool, Button>> = {};
+  private blueprintButtons: Partial<Record<Blueprint['id'], Button>> = {};
   private drawer: Phaser.GameObjects.Container | null = null;
   private busy = false;
+  private structures: Structure[] = [];
+  private undoStack: BuildLayer[] = [];
+  private stamping: Blueprint | null = null;
+  private lineStart: { x: number; y: number } | null = null;
 
   constructor() {
     super('Island');
@@ -121,7 +138,11 @@ export class IslandScene extends Phaser.Scene {
     this.careBars = {};
     this.careButtons = {};
     this.toolButtons = {};
+    this.blueprintButtons = {};
     this.drawer = null;
+    this.undoStack = [];
+    this.stamping = null;
+    this.lineStart = null;
     this.statsPanel = null;
     this.growthBar = null;
 
@@ -138,13 +159,33 @@ export class IslandScene extends Phaser.Scene {
     const worldW = this.island.width * TILE;
     const worldH = this.island.height * TILE;
     // Zoomed out, the island is a baked texture (cheap to pan). Zoomed in,
-    // the live vector drawing takes over so trees and crystals stay crisp.
-    this.islandGfx = this.add.graphics();
-    drawIslandTiles(this.islandGfx, this.island, this.view, false);
+    // a live vector drawing of just the visible tiles takes over so trees
+    // and crystals stay crisp without redrawing the whole island each frame.
+    const bake = this.add.graphics();
+    drawIslandTiles(bake, this.island, this.view, false);
     this.islandRt = this.add.renderTexture(0, 0, worldW, worldH).setOrigin(0);
-    this.islandRt.draw(this.islandGfx, 0, 0);
-    this.islandGfx.setVisible(false);
-    this.world.add([this.islandRt, this.islandGfx]);
+    this.islandRt.draw(bake, 0, 0);
+    bake.destroy();
+    // Zoomed in, 2x chunk textures take over so props stay crisp. Baked once
+    // here; a vector redraw per frame would be tens of thousands of commands.
+    this.chunks = [];
+    const CH = 8;
+    for (let cy = 0; cy < this.island.height; cy += CH) {
+      for (let cx = 0; cx < this.island.width; cx += CH) {
+        const w = Math.min(CH, this.island.width - cx);
+        const h = Math.min(CH, this.island.height - cy);
+        const g = this.add.graphics();
+        const view2: IslandView = { ...this.view, ox: -cx * TILE * 2, oy: -cy * TILE * 2, tile: TILE * 2 };
+        // One tile of margin so neighbours' cliffs and foam overlap into this chunk; the texture clips the rest.
+        drawIslandTiles(g, this.island, view2, false, { x0: cx - 1, y0: cy - 1, x1: cx + w, y1: cy + h });
+        const rt = this.add.renderTexture(cx * TILE, cy * TILE, w * TILE * 2, h * TILE * 2).setOrigin(0).setScale(0.5).setVisible(false);
+        rt.draw(g, 0, 0);
+        g.destroy();
+        this.chunks.push(rt);
+        this.world.add(rt);
+      }
+    }
+    this.world.add(this.islandRt);
 
     this.gridGfx = this.add.graphics();
     this.world.add(this.gridGfx);
@@ -187,6 +228,8 @@ export class IslandScene extends Phaser.Scene {
       reduceMotion: save.settings.reduceMotion,
       onTap: (wx, wy) => this.onTapWorld(wx, wy),
       onHover: (wx, wy) => this.onHoverWorld(wx, wy),
+      onDrag: (sx, sy, wx, wy) => this.onDrawDrag(sx, sy, wx, wy),
+      onDragEnd: (sx, sy, wx, wy) => this.onDrawEnd(sx, sy, wx, wy),
       onZoomChange: (_z, level) => this.onZoomLevel(level),
     });
     const me = save.kaiju[this.selected];
@@ -216,24 +259,42 @@ export class IslandScene extends Phaser.Scene {
   }
 
   private redrawBlocks() {
+    const save = getStore(this).save;
     this.blocksGfx.clear();
-    drawBlocks(this.blocksGfx, getStore(this).save.blocks, this.view);
-    this.gridGfx.clear();
+    this.structures = findStructures(save.blocks);
+    for (const st of this.structures) {
+      const tiles = st.tiles.map((k) => ({ x: Number(k.split(',')[0]), y: Number(k.split(',')[1]) }));
+      drawStructureBadge(this.blocksGfx, tiles, this.view, STRUCTURE_COLOR[st.id]);
+    }
+    drawBlocks(this.blocksGfx, save.blocks, this.view);
     if (this.buildMode) {
-      this.gridGfx.lineStyle(1, 0x1f3a68, 0.2);
-      for (let y = 0; y < this.island.height; y++) {
-        for (let x = 0; x < this.island.width; x++) {
-          if (isLand(this.island, x, y)) this.gridGfx.strokeRect(x * TILE, y * TILE, TILE, TILE);
-        }
+      for (const plan of save.plans) drawPlanGhost(this.blocksGfx, planCells(plan), save.blocks, this.view);
+    }
+    for (const [id, b] of Object.entries(this.blueprintButtons)) b?.setSub(`${this.structures.filter((s) => s.id === id).length}`);
+    this.redrawGrid();
+  }
+
+  private redrawGrid() {
+    this.gridGfx.clear();
+    if (!this.buildMode) return;
+    this.gridGfx.lineStyle(1, 0x1f3a68, 0.2);
+    for (let y = 0; y < this.island.height; y++) {
+      for (let x = 0; x < this.island.width; x++) {
+        if (isLand(this.island, x, y)) this.gridGfx.strokeRect(x * TILE, y * TILE, TILE, TILE);
       }
     }
   }
 
   private onHoverWorld(wx: number, wy: number) {
     this.ghostGfx.clear();
-    if (!this.buildMode) return;
+    if (!this.buildMode || this.tool === 'hand') return;
     const t = this.view.pixelToTile(wx, wy);
     if (!t || !isLand(this.island, t.x, t.y)) return;
+    if (this.stamping) {
+      const plan = this.planAt(this.stamping, t.x, t.y);
+      drawPlanGhost(this.ghostGfx, planCells(plan), getStore(this).save.blocks, this.view);
+      return;
+    }
     if (this.tool === 'erase') {
       this.ghostGfx.lineStyle(4, 0xff5252, 0.9);
       this.ghostGfx.strokeRoundedRect(t.x * TILE + 6, t.y * TILE + 6, TILE - 12, TILE - 12, 10);
@@ -244,6 +305,46 @@ export class IslandScene extends Phaser.Scene {
     this.ghostGfx.fillRoundedRect(t.x * TILE + 6, t.y * TILE + 6, TILE - 12, TILE - 12, 10);
     this.ghostGfx.lineStyle(3, 0xffffff, 0.9);
     this.ghostGfx.strokeRoundedRect(t.x * TILE + 6, t.y * TILE + 6, TILE - 12, TILE - 12, 10);
+  }
+
+  private onDrawDrag(sx: number, sy: number, wx: number, wy: number) {
+    if (!this.buildMode || this.tool === 'hand' || this.tool === 'erase' || this.stamping) return;
+    const a = this.view.pixelToTile(sx, sy);
+    const b = this.view.pixelToTile(wx, wy);
+    if (!a || !b) return;
+    this.lineStart = a;
+    this.ghostGfx.clear();
+    const color = Phaser.Display.Color.HexStringToColor(BLOCK_INFO[this.tool].color).color;
+    for (const t of lineTiles(a, b)) {
+      if (!isLand(this.island, t.x, t.y)) continue;
+      this.ghostGfx.fillStyle(color, 0.45);
+      this.ghostGfx.fillRoundedRect(t.x * TILE + 6, t.y * TILE + 6, TILE - 12, TILE - 12, 10);
+    }
+  }
+
+  private onDrawEnd(sx: number, sy: number, wx: number, wy: number) {
+    this.ghostGfx.clear();
+    if (!this.buildMode || this.tool === 'hand' || this.tool === 'erase' || this.stamping) return;
+    const a = this.view.pixelToTile(sx, sy);
+    const b = this.view.pixelToTile(wx, wy);
+    this.lineStart = null;
+    if (!a || !b) return;
+    const store = getStore(this);
+    const kind = this.tool as BlockKind;
+    this.pushUndo();
+    let placed = 0;
+    store.update((st) => {
+      let blocks = st.blocks;
+      for (const t of lineTiles(a, b)) {
+        if (st.kaiju.some((k) => k.pos && k.pos.x === t.x && k.pos.y === t.y)) continue;
+        const before = blocks;
+        blocks = placeBlock(blocks, this.island, t.x, t.y, kind);
+        if (blocks !== before) placed++;
+      }
+      return { ...st, blocks };
+    });
+    if (placed > 0) sfx.place();
+    this.afterBuild();
   }
 
   private onTapWorld(wx: number, wy: number) {
@@ -278,7 +379,7 @@ export class IslandScene extends Phaser.Scene {
     this.walkTo(t.x, t.y);
   }
 
-  private walkTo(x: number, y: number) {
+  private walkTo(x: number, y: number, onArrive?: () => void) {
     if (this.walking) return;
     const store = getStore(this);
     const me = store.save.kaiju[this.selected];
@@ -289,8 +390,16 @@ export class IslandScene extends Phaser.Scene {
       floatText(this, x * TILE + TILE / 2, y * TILE, '🌊', '#ffffff', store.save.settings, 28, this.world);
       return;
     }
-    const path = findPath(this.island, from, { x, y });
-    if (!path || path.length === 0) return;
+    const blocks = store.save.blocks;
+    const path = findPath(this.island, from, { x, y }, (bx, by) => Boolean(blocks[blockKey(bx, by)]));
+    if (!path) {
+      floatText(this, x * TILE + TILE / 2, y * TILE, '🚧', '#ffffff', store.save.settings, 28, this.world);
+      return;
+    }
+    if (path.length === 0) {
+      onArrive?.();
+      return;
+    }
     this.walking = true;
     const settings = store.save.settings;
     const stepMs = settings.reduceMotion ? 60 : 170;
@@ -303,6 +412,7 @@ export class IslandScene extends Phaser.Scene {
         store.update((s) => ({ ...s, kaiju: s.kaiju.map((k) => (k.id === me.id ? { ...k, pos: { x, y } } : k)) }));
         this.motions.set(me.id, attachMotion(this, sprite, presetFor(me.genome.kind, getParts(this).get(me.genome.kind)?.motion), settings));
         this.updateGlow(store.save);
+        onArrive?.();
         return;
       }
       const px = this.view.tileToPixel(p.x, p.y);
@@ -329,24 +439,77 @@ export class IslandScene extends Phaser.Scene {
     step();
   }
 
+  private planAt(bp: Blueprint, x: number, y: number): Plan {
+    return bp.shape.type === 'line' ? { id: bp.id, x, y, length: bp.shape.minLength, axis: 'x' } : { id: bp.id, x, y };
+  }
+
+  private pushUndo() {
+    this.undoStack.push(getStore(this).save.blocks);
+    if (this.undoStack.length > 30) this.undoStack.shift();
+  }
+
+  private undo() {
+    const prev = this.undoStack.pop();
+    if (!prev) return;
+    getStore(this).update((st) => ({ ...st, blocks: prev }));
+    sfx.tap();
+    this.afterBuild();
+  }
+
+  /** After any block change: redraw, refresh the repair badge, and finish any completed plans. */
+  private afterBuild() {
+    const store = getStore(this);
+    const before = new Set(this.structures.map((st) => `${st.id}:${st.x},${st.y}`));
+    this.redrawBlocks();
+    this.updateBuildButton(store.save);
+    const done = store.save.plans.filter((p) => planComplete(p, store.save.blocks));
+    if (done.length > 0) store.update((st) => ({ ...st, plans: st.plans.filter((p) => !done.includes(p)) }));
+    const fresh = this.structures.filter((st) => !before.has(`${st.id}:${st.x},${st.y}`));
+    for (const st of fresh) {
+      const p = this.view.tileToPixel(st.x, st.y);
+      sfx.sparkle();
+      burst(this, p.x + TILE / 2, p.y, STRUCTURE_COLOR[st.id], store.save.settings, 30, this.world);
+      const bp = BLUEPRINTS.find((b) => b.id === st.id)!;
+      floatText(this, p.x + TILE / 2, p.y - TILE, `${bp.icon} ✓`, '#ffffff', store.save.settings, 40, this.world);
+    }
+    if (done.length > 0) this.redrawBlocks();
+  }
+
   private buildAt(x: number, y: number) {
     const store = getStore(this);
     const s = store.save;
     const existing = s.blocks[blockKey(x, y)];
     const px = this.view.tileToPixel(x, y);
+    if (this.tool === 'hand' && !this.stamping) return;
+    if (this.stamping) {
+      // Stamp a plan: ghost cubes to fill in. Tapping an existing plan of the same kind removes it.
+      const bp = this.stamping;
+      const plan = this.planAt(bp, x, y);
+      const cells = planCells(plan);
+      if (!cells.every((c) => isLand(this.island, c.dx, c.dy))) {
+        floatText(this, px.x, px.y, '🌊', '#ffffff', s.settings, 28, this.world);
+        return;
+      }
+      const hit = s.plans.find((p) => planCells(p).some((c) => c.dx === x && c.dy === y));
+      store.update((st) => ({ ...st, plans: hit ? st.plans.filter((p) => p !== hit) : [...st.plans, plan] }));
+      sfx.tap();
+      this.redrawBlocks();
+      return;
+    }
     if (existing?.broken) {
+      this.pushUndo();
       store.update((st) => ({ ...st, blocks: repairBlock(st.blocks, x, y) }));
       sfx.repair();
       burst(this, px.x, px.y, 0xa5d6a7, s.settings, 10, this.world);
-      this.redrawBlocks();
-      this.updateBuildButton(store.save);
+      this.afterBuild();
       return;
     }
     if (this.tool === 'erase') {
       if (existing) {
+        this.pushUndo();
         store.update((st) => ({ ...st, blocks: removeBlock(st.blocks, x, y) }));
         sfx.crunch();
-        this.redrawBlocks();
+        this.afterBuild();
       }
       return;
     }
@@ -356,10 +519,14 @@ export class IslandScene extends Phaser.Scene {
     }
     // Don't build on top of a kaiju.
     for (const k of s.kaiju) if (k.pos && k.pos.x === x && k.pos.y === y) return;
+    if (existing && existing.kinds.length >= MAX_STACK) {
+      floatText(this, px.x, px.y - TILE, `${MAX_STACK} ⬆️`, '#ffffff', s.settings, 26, this.world);
+      return;
+    }
+    this.pushUndo();
     store.update((st) => ({ ...st, blocks: placeBlock(st.blocks, this.island, x, y, this.tool as BlockKind) }));
     sfx.place();
-    this.redrawBlocks();
-    this.updateBuildButton(store.save);
+    this.afterBuild();
   }
 
   // ---------------------------------------------------------------------------
@@ -494,7 +661,7 @@ export class IslandScene extends Phaser.Scene {
     this.zoomInBtn?.setDisabledState(level >= 2);
     this.zoomOutBtn?.setDisabledState(level <= 0);
     const close = level >= 1;
-    this.islandGfx?.setVisible(close);
+    for (const c of this.chunks) c.setVisible(close);
     this.islandRt?.setVisible(!close);
   }
 
@@ -514,6 +681,8 @@ export class IslandScene extends Phaser.Scene {
     } else {
       this.closeDrawer();
       this.ghostGfx.clear();
+      this.stamping = null;
+      this.camera.setPanEnabled(true);
       if (this.camera.level === 2) this.camera.setLevel(1);
     }
     this.buildBtn.setGlow(this.buildMode);
@@ -522,22 +691,42 @@ export class IslandScene extends Phaser.Scene {
 
   private openDrawer(save: MemberSave, L: ReturnType<typeof layoutFor>) {
     this.closeDrawer();
-    const size = L.compact ? 52 : 64;
+    const size = L.compact ? 48 : 60;
     const gap = 8;
-    const tools: Tool[] = [...BLOCK_KINDS, 'erase'];
-    const rows = L.compact ? 2 : 1;
-    const perRow = Math.ceil(tools.length / rows);
-    const drawerW = perRow * size + (perRow - 1) * gap + L.pad * 2;
-    const drawerH = rows * size + (rows - 1) * gap + L.pad * 2;
+    const tools: Tool[] = ['hand', ...BLOCK_KINDS, 'erase'];
+    const toolRows = L.compact ? 2 : 1;
+    const perRow = Math.ceil(tools.length / toolRows);
+    const bpCount = BLUEPRINTS.length + 1; // + undo
+    const cols = Math.max(perRow, bpCount);
+    const drawerW = cols * size + (cols - 1) * gap + L.pad * 2;
+    const rows = toolRows + 1;
+    const drawerH = rows * size + (rows - 1) * gap + L.pad * 2 + 18;
     const x = L.w / 2 - drawerW / 2;
     const y = L.h - L.pad * 2 - L.btn - drawerH - 8;
     const c = this.add.container(0, 0);
     c.add(panel(this, x, y, drawerW, drawerH, COLORS.panel, 0.96));
+    // Row 0: blueprints and undo. Blueprint buttons show how many stand.
+    BLUEPRINTS.forEach((bp, i) => {
+      const built = this.structures.filter((s) => s.id === bp.id).length;
+      const b = makeButton(this, x + L.pad + size / 2 + i * (size + gap), y + L.pad + size / 2, {
+        icon: bp.icon, label: `${bp.label}: ${bp.effect}`, size, sub: `${built}`, color: STRUCTURE_COLOR[bp.id], settings: save.settings,
+        onTap: () => this.selectBlueprint(bp),
+      });
+      this.blueprintButtons[bp.id] = b;
+      c.add(b);
+    });
+    c.add(
+      makeButton(this, x + L.pad + size / 2 + BLUEPRINTS.length * (size + gap), y + L.pad + size / 2, {
+        icon: '↩️', label: 'Undo', size, settings: save.settings, onTap: () => this.undo(),
+      }),
+    );
+    c.add(this.add.text(x + L.pad, y + L.pad + size + 2, 'blueprints', { fontSize: '12px', fontFamily: FONT, color: COLORS.muted }));
+    // Rows 1+: hand, blocks, eraser.
     tools.forEach((tool, i) => {
       const row = Math.floor(i / perRow);
       const col = i % perRow;
-      const info = tool === 'erase' ? { icon: '🧽', label: 'Eraser' } : BLOCK_INFO[tool];
-      const b = makeButton(this, x + L.pad + size / 2 + col * (size + gap), y + L.pad + size / 2 + row * (size + gap), {
+      const info = tool === 'erase' ? { icon: '🧽', label: 'Eraser' } : tool === 'hand' ? { icon: '✋', label: 'Move around' } : BLOCK_INFO[tool];
+      const b = makeButton(this, x + L.pad + size / 2 + col * (size + gap), y + L.pad + size + 18 + size / 2 + row * (size + gap) + gap, {
         icon: info.icon, label: info.label, size, settings: save.settings, onTap: () => this.selectTool(tool),
       });
       this.toolButtons[tool] = b;
@@ -549,6 +738,14 @@ export class IslandScene extends Phaser.Scene {
     this.buildBtn.setGlow(true);
   }
 
+  private selectBlueprint(bp: Blueprint) {
+    this.stamping = this.stamping?.id === bp.id ? null : bp;
+    this.camera.setPanEnabled(this.stamping === null && this.tool === 'hand');
+    for (const [id, b] of Object.entries(this.blueprintButtons)) b?.setGlow(this.stamping?.id === id);
+    for (const [k, b] of Object.entries(this.toolButtons)) b?.setGlow(!this.stamping && k === this.tool);
+    this.ghostGfx.clear();
+  }
+
   private closeDrawer() {
     this.drawer?.destroy();
     this.drawer = null;
@@ -557,7 +754,12 @@ export class IslandScene extends Phaser.Scene {
 
   private selectTool(tool: Tool) {
     this.tool = tool;
+    this.stamping = null;
+    for (const [, b] of Object.entries(this.blueprintButtons)) b?.setGlow(false);
     for (const [k, b] of Object.entries(this.toolButtons)) b?.setGlow(k === tool);
+    // Block tools draw on drag; the hand pans.
+    this.camera.setPanEnabled(tool === 'hand');
+    this.ghostGfx.clear();
   }
 
   private nextStageOf(k: Kaiju): string {
@@ -584,7 +786,27 @@ export class IslandScene extends Phaser.Scene {
     const save = store.save;
     const kaiju = save.kaiju[this.selected];
     if (!kaiju) return;
-    const result = applyCare(kaiju, action);
+    // Sleep in a habitat if one stands: walk there first, then a bigger nap.
+    const fx = structureEffects(this.structures);
+    const habitat = fx.habitats[0];
+    if (action === 'sleep' && habitat && !this.walking) {
+      const pos = kaiju.pos ?? spawnTile(this.island);
+      const door = { x: habitat.x, y: habitat.y + 2 };
+      const there = pos.x === door.x && pos.y === door.y;
+      if (!there && isLand(this.island, door.x, door.y) && !save.blocks[blockKey(door.x, door.y)]) {
+        this.walkTo(door.x, door.y, () => this.applyCareNow('sleep', fx.restBonus));
+        return;
+      }
+    }
+    this.applyCareNow(action, action === 'sleep' ? fx.restBonus : 0);
+  }
+
+  private applyCareNow(action: CareAction, bonus: number) {
+    const store = getStore(this);
+    const save = store.save;
+    const kaiju = save.kaiju[this.selected];
+    if (!kaiju) return;
+    const result = applyCare(kaiju, action, bonus);
     const next = store.update((s) => ({ ...s, kaiju: s.kaiju.map((k, i) => (i === this.selected ? result.kaiju : k)) }));
 
     const info = CARE_INFO[action];

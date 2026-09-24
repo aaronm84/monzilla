@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BIOME_INFO, BLOCK_INFO, Rng, blockKey, forkSeed, type Biome, type BuildLayer, type Island } from '@monzilla/core';
+import { BIOME_INFO, BLOCK_INFO, Rng, blockKey, forkSeed, type Biome, type BlockKind, type BuildLayer, type Island } from '@monzilla/core';
 
 const hex = (s: string) => Phaser.Display.Color.HexStringToColor(s).color;
 const shade = (color: number, amount: number) => {
@@ -48,16 +48,31 @@ const isLandAt = (island: Island, x: number, y: number) => {
  * looks organic, a darker cliff band under the coast so the island sits
  * up out of the sea, foam along the shore, and a few props per biome.
  */
-export function drawIslandTiles(g: Phaser.GameObjects.Graphics, island: Island, view: IslandView, gridLines = false) {
+export interface TileRect {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/**
+ * @param rect Only draw tiles in this range (inclusive). Zoomed-in views
+ * pass the visible range so the per-frame draw stays small.
+ */
+export function drawIslandTiles(g: Phaser.GameObjects.Graphics, island: Island, view: IslandView, gridLines = false, rect?: TileRect) {
   const t = view.tile;
   const W = island.width;
   const H = island.height;
+  const X0 = Math.max(0, rect?.x0 ?? 0);
+  const Y0 = Math.max(0, rect?.y0 ?? 0);
+  const X1 = Math.min(W - 1, rect?.x1 ?? W - 1);
+  const Y1 = Math.min(H - 1, rect?.y1 ?? H - 1);
 
   // Water: deep base, then shallows that brighten toward the shore.
   g.fillStyle(0x2f8fc7, 1);
-  g.fillRect(view.ox - t, view.oy - t, t * (W + 2), t * (H + 2));
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
+  g.fillRect(view.ox + (X0 - 1) * t, view.oy + (Y0 - 1) * t, t * (X1 - X0 + 3), t * (Y1 - Y0 + 3));
+  for (let y = Y0; y <= Y1; y++) {
+    for (let x = X0; x <= X1; x++) {
       const tile = island.tiles[y * W + x]!;
       if (tile.terrain !== 'water') continue;
       const near = [isLandAt(island, x - 1, y), isLandAt(island, x + 1, y), isLandAt(island, x, y - 1), isLandAt(island, x, y + 1)].filter(Boolean).length;
@@ -73,8 +88,8 @@ export function drawIslandTiles(g: Phaser.GameObjects.Graphics, island: Island, 
   };
 
   // Cliff band: the land again, shifted down and darkened, drawn first.
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
+  for (let y = Y0; y <= Y1; y++) {
+    for (let x = X0; x <= X1; x++) {
       const tile = island.tiles[y * W + x]!;
       if (tile.terrain === 'water') continue;
       g.fillStyle(shade(hex(BIOME_INFO[tile.terrain].color), -35), 1);
@@ -82,8 +97,8 @@ export function drawIslandTiles(g: Phaser.GameObjects.Graphics, island: Island, 
     }
   }
   // Foam: a soft white halo around the coast.
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
+  for (let y = Y0; y <= Y1; y++) {
+    for (let x = X0; x <= X1; x++) {
       const tile = island.tiles[y * W + x]!;
       if (tile.terrain === 'water') continue;
       g.fillStyle(0xffffff, 0.35);
@@ -91,8 +106,8 @@ export function drawIslandTiles(g: Phaser.GameObjects.Graphics, island: Island, 
     }
   }
   // Land tops, lighter with elevation.
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
+  for (let y = Y0; y <= Y1; y++) {
+    for (let x = X0; x <= X1; x++) {
       const tile = island.tiles[y * W + x]!;
       if (tile.terrain === 'water') continue;
       const base = hex(BIOME_INFO[tile.terrain].color);
@@ -102,8 +117,8 @@ export function drawIslandTiles(g: Phaser.GameObjects.Graphics, island: Island, 
   }
   // Scattered soft highlights for a painted feel, placed per tile from the
   // seed so they never line up into a grid pattern.
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
+  for (let y = Y0; y <= Y1; y++) {
+    for (let x = X0; x <= X1; x++) {
       const tile = island.tiles[y * W + x]!;
       if (tile.terrain === 'water') continue;
       const rng = new Rng(forkSeed(island.seed, `hl:${x},${y}`));
@@ -115,8 +130,8 @@ export function drawIslandTiles(g: Phaser.GameObjects.Graphics, island: Island, 
 
   if (gridLines) {
     g.lineStyle(1, 0x1f3a68, 0.18);
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
+    for (let y = Y0; y <= Y1; y++) {
+      for (let x = X0; x <= X1; x++) {
         if (island.tiles[y * W + x]!.terrain === 'water') continue;
         g.strokeRect(view.ox + x * t, view.oy + y * t, t, t);
       }
@@ -125,8 +140,8 @@ export function drawIslandTiles(g: Phaser.GameObjects.Graphics, island: Island, 
 
   // Props, deterministic per tile, skipped in build mode so the grid is clear.
   if (!gridLines) {
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
+    for (let y = Y0; y <= Y1; y++) {
+      for (let x = X0; x <= X1; x++) {
         const tile = island.tiles[y * W + x]!;
         if (tile.terrain === 'water') continue;
         const rng = new Rng(forkSeed(island.seed, `prop:${x},${y}`));
@@ -214,49 +229,98 @@ function drawProp(g: Phaser.GameObjects.Graphics, biome: Biome, x: number, y: nu
   }
 }
 
-/** Draw placed blocks as chunky cubes; broken ones as cracked outlines. */
+/** Vertical offset per stacked block, as a fraction of a tile. */
+export const STACK_RISE = 0.38;
+
+/** One chunky cube at a pixel position. */
+export function drawCube(g: Phaser.GameObjects.Graphics, px: number, py: number, s: number, kind: BlockKind, alpha = 1) {
+  const color = hex(BLOCK_INFO[kind].color);
+  const light = shade(color, 25);
+  const dark = shade(color, -20);
+  g.fillStyle(dark, alpha);
+  g.fillRoundedRect(px, py + s * 0.35, s, s * 0.65, s * 0.12);
+  g.fillStyle(light, alpha);
+  g.fillRoundedRect(px, py, s, s * 0.5, s * 0.12);
+  g.fillStyle(color, alpha);
+  g.fillRoundedRect(px + s * 0.08, py + s * 0.12, s * 0.84, s * 0.6, s * 0.1);
+  g.lineStyle(Math.max(1.5, s * 0.06), 0xffffff, 0.5 * alpha);
+  g.strokeRoundedRect(px, py, s, s, s * 0.12);
+  if (kind === 'tower') {
+    g.fillStyle(0xeceff1, alpha);
+    g.fillTriangle(px + s * 0.5, py - s * 0.3, px + s * 0.25, py + s * 0.2, px + s * 0.75, py + s * 0.2);
+  }
+  if (kind === 'roof') {
+    g.fillStyle(shade(color, -10), alpha);
+    g.fillTriangle(px - s * 0.05, py + s * 0.3, px + s * 1.05, py + s * 0.3, px + s * 0.5, py - s * 0.25);
+  }
+  if (kind === 'lantern') {
+    g.fillStyle(0xffe082, 0.5 * alpha);
+    g.fillCircle(px + s * 0.5, py + s * 0.5, s * 0.8);
+  }
+  if (kind === 'flower') {
+    g.fillStyle(0xf8bbd0, alpha);
+    g.fillCircle(px + s * 0.5, py + s * 0.4, s * 0.2);
+  }
+}
+
+/**
+ * Draw placed blocks as stacked cubes, bottom to top, each level rising so
+ * towers read as tall. Broken tiles show a cracked outline on top. Sorted
+ * by row so a tall stack in front covers what is behind it.
+ */
 export function drawBlocks(g: Phaser.GameObjects.Graphics, blocks: BuildLayer, view: IslandView) {
   const t = view.tile;
   const inset = Math.max(2, t * 0.1);
-  for (const b of Object.values(blocks)) {
+  const s = t - inset * 2;
+  const sorted = Object.values(blocks).sort((a, b) => a.y - b.y || a.x - b.x);
+  for (const b of sorted) {
     const px = view.ox + b.x * t + inset;
-    const py = view.oy + b.y * t + inset;
-    const s = t - inset * 2;
-    const color = hex(BLOCK_INFO[b.kind].color);
-    if (b.broken) {
-      g.lineStyle(Math.max(2, t * 0.08), 0xffffff, 0.9);
-      g.strokeRoundedRect(px, py, s, s, s * 0.15);
-      g.lineStyle(Math.max(2, t * 0.06), 0xff5252, 0.9);
-      g.lineBetween(px + s * 0.2, py + s * 0.1, px + s * 0.5, py + s * 0.5);
-      g.lineBetween(px + s * 0.5, py + s * 0.5, px + s * 0.35, py + s * 0.9);
-      g.lineBetween(px + s * 0.5, py + s * 0.5, px + s * 0.85, py + s * 0.6);
-      continue;
-    }
+    const base = view.oy + b.y * t + inset;
     g.fillStyle(0x000000, 0.18);
-    g.fillEllipse(px + s * 0.5, py + s * 1.02, s * 1.05, s * 0.3);
-    const light = shade(color, 25);
-    const dark = shade(color, -20);
-    g.fillStyle(dark, 1);
-    g.fillRoundedRect(px, py + s * 0.35, s, s * 0.65, s * 0.12);
-    g.fillStyle(light, 1);
-    g.fillRoundedRect(px, py, s, s * 0.5, s * 0.12);
-    g.fillStyle(color, 1);
-    g.fillRoundedRect(px + s * 0.08, py + s * 0.12, s * 0.84, s * 0.6, s * 0.1);
-    g.lineStyle(Math.max(1.5, s * 0.06), 0xffffff, 0.5);
-    g.strokeRoundedRect(px, py, s, s, s * 0.12);
-    if (b.kind === 'tower') {
-      g.fillStyle(0xeceff1, 1);
-      g.fillTriangle(px + s * 0.5, py - s * 0.3, px + s * 0.25, py + s * 0.2, px + s * 0.75, py + s * 0.2);
-    }
-    if (b.kind === 'lantern') {
-      g.fillStyle(0xffe082, 0.5);
-      g.fillCircle(px + s * 0.5, py + s * 0.5, s * 0.8);
-    }
-    if (b.kind === 'flower') {
-      g.fillStyle(0xf8bbd0, 1);
-      g.fillCircle(px + s * 0.5, py + s * 0.4, s * 0.2);
+    g.fillEllipse(px + s * 0.5, base + s * 1.02, s * 1.05, s * 0.3);
+    b.kinds.forEach((kind, i) => drawCube(g, px, base - i * t * STACK_RISE, s, kind, b.broken ? 0.55 : 1));
+    if (b.broken) {
+      const top = base - (b.kinds.length - 1) * t * STACK_RISE;
+      g.lineStyle(Math.max(2, t * 0.08), 0xffffff, 0.9);
+      g.strokeRoundedRect(px, top, s, s, s * 0.15);
+      g.lineStyle(Math.max(2, t * 0.06), 0xff5252, 0.9);
+      g.lineBetween(px + s * 0.2, top + s * 0.1, px + s * 0.5, top + s * 0.5);
+      g.lineBetween(px + s * 0.5, top + s * 0.5, px + s * 0.35, top + s * 0.9);
+      g.lineBetween(px + s * 0.5, top + s * 0.5, px + s * 0.85, top + s * 0.6);
     }
   }
+}
+
+/** Ghost cubes for a plan: what still needs building on each tile. */
+export function drawPlanGhost(g: Phaser.GameObjects.Graphics, cells: { dx: number; dy: number; kinds: BlockKind[] }[], blocks: BuildLayer, view: IslandView) {
+  const t = view.tile;
+  const inset = Math.max(2, t * 0.1);
+  const s = t - inset * 2;
+  for (const c of cells) {
+    const have = blocks[blockKey(c.dx, c.dy)];
+    const built = have && !have.broken ? have.kinds.length : 0;
+    const px = view.ox + c.dx * t + inset;
+    const base = view.oy + c.dy * t + inset;
+    g.lineStyle(2, 0x1f3a68, 0.5);
+    g.strokeRoundedRect(px, base, s, s, s * 0.12);
+    c.kinds.forEach((kind, i) => {
+      if (i < built) return;
+      drawCube(g, px, base - i * t * STACK_RISE, s, kind, 0.35);
+    });
+  }
+}
+
+/** A soft ring and badge under a recognised structure. */
+export function drawStructureBadge(g: Phaser.GameObjects.Graphics, tiles: { x: number; y: number }[], view: IslandView, color: number) {
+  const t = view.tile;
+  const xs = tiles.map((p) => p.x);
+  const ys = tiles.map((p) => p.y);
+  const x0 = Math.min(...xs) * t + view.ox;
+  const y0 = Math.min(...ys) * t + view.oy;
+  const w = (Math.max(...xs) - Math.min(...xs) + 1) * t;
+  const h = (Math.max(...ys) - Math.min(...ys) + 1) * t;
+  g.lineStyle(Math.max(2, t * 0.06), color, 0.7);
+  g.strokeRoundedRect(x0 - 3, y0 - 3, w + 6, h + 6, t * 0.2);
 }
 
 export function keyOf(x: number, y: number) {

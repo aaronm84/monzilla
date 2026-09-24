@@ -10,6 +10,7 @@ import {
   biomeCounts,
   computeDamage,
   dayIndex,
+  findStructures,
   forkSeed,
   generateIsland,
   generateVillain,
@@ -19,6 +20,7 @@ import {
   rewardFor,
   startBattle,
   statTotal,
+  structureEffects,
   weatherFor,
   type Battle,
   type Kaiju,
@@ -180,7 +182,8 @@ export class BattleScene extends Phaser.Scene {
     this.busy = true;
     const store = getStore(this);
     const save = store.save;
-    const result = attack(this.battle, guardian, move, save.blocks, save.memberId);
+    const fx = structureEffects(findStructures(save.blocks));
+    const result = attack(this.battle, guardian, move, save.blocks, save.memberId, { breakChance: fx.breakChance, preferred: fx.wallTiles });
     this.battle = result.battle;
     store.update((s) => ({ ...s, activeBattle: this.battle, blocks: result.blocks }));
 

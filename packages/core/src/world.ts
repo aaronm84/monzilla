@@ -153,10 +153,15 @@ export const BLOCK_INFO: Record<BlockKind, { icon: string; color: string; label:
   lantern: { icon: '🏮', color: '#ffb300', label: 'Lantern' },
 };
 
+/** Blocks stack: a tile holds a short column, bottom first. */
+export const MAX_STACK = 3;
+
 export interface Block {
   x: number;
   y: number;
-  kind: BlockKind;
+  /** Bottom to top. Never empty; a tile with no blocks is absent from the layer. */
+  kinds: BlockKind[];
+  /** A villain stomped it: shown cracked, repaired with a tap. */
   broken: boolean;
 }
 
@@ -165,14 +170,24 @@ export type BuildLayer = Record<string, Block>;
 
 export const blockKey = (x: number, y: number) => `${x},${y}`;
 
+/** Add a block on a land tile, stacking on top of any already there. */
 export function placeBlock(layer: BuildLayer, island: Island, x: number, y: number, kind: BlockKind): BuildLayer {
   if (!isLand(island, x, y)) return layer;
-  return { ...layer, [blockKey(x, y)]: { x, y, kind, broken: false } };
+  const key = blockKey(x, y);
+  const existing = layer[key];
+  if (!existing) return { ...layer, [key]: { x, y, kinds: [kind], broken: false } };
+  if (existing.broken || existing.kinds.length >= MAX_STACK) return layer;
+  return { ...layer, [key]: { ...existing, kinds: [...existing.kinds, kind] } };
 }
 
+/** Remove the top block; the tile clears when the last one goes. */
 export function removeBlock(layer: BuildLayer, x: number, y: number): BuildLayer {
+  const key = blockKey(x, y);
+  const existing = layer[key];
+  if (!existing) return layer;
   const next = { ...layer };
-  delete next[blockKey(x, y)];
+  if (existing.kinds.length <= 1) delete next[key];
+  else next[key] = { ...existing, kinds: existing.kinds.slice(0, -1), broken: false };
   return next;
 }
 
@@ -182,15 +197,50 @@ export function repairBlock(layer: BuildLayer, x: number, y: number): BuildLayer
   return { ...layer, [blockKey(x, y)]: { ...b, broken: false } };
 }
 
-/** A villain stomp: break one intact block, chosen deterministically. */
-export function breakRandomBlock(layer: BuildLayer, rng: Rng): { layer: BuildLayer; broken: Block | null } {
+export interface Defense {
+  /** Chance a villain turn breaks anything at all. Watchtowers lower it. */
+  breakChance: number;
+  /** Tiles a villain hits first: walls take the damage before decorations. */
+  preferred: Set<string>;
+}
+
+/** A villain stomp: break one intact tile, walls first, chosen deterministically. */
+export function breakRandomBlock(layer: BuildLayer, rng: Rng, defense?: Defense): { layer: BuildLayer; broken: Block | null } {
   const intact = Object.values(layer).filter((b) => !b.broken);
   if (intact.length === 0) return { layer, broken: null };
-  const target = rng.pick(intact);
+  const walls = defense ? intact.filter((b) => defense.preferred.has(blockKey(b.x, b.y))) : [];
+  const target = rng.pick(walls.length > 0 ? walls : intact);
   const broken = { ...target, broken: true };
   return { layer: { ...layer, [blockKey(target.x, target.y)]: broken }, broken };
 }
 
 export function brokenBlocks(layer: BuildLayer): Block[] {
   return Object.values(layer).filter((b) => b.broken);
+}
+
+/** Place a straight run of blocks between two tiles (dominant axis only). */
+export function placeLine(layer: BuildLayer, island: Island, from: TileXY, to: TileXY, kind: BlockKind): BuildLayer {
+  let out = layer;
+  for (const t of lineTiles(from, to)) out = placeBlock(out, island, t.x, t.y, kind);
+  return out;
+}
+
+export interface TileXY {
+  x: number;
+  y: number;
+}
+
+/** Tiles along the dominant axis from a to b, inclusive. Kids draw straight walls. */
+export function lineTiles(a: TileXY, b: TileXY): TileXY[] {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const out: TileXY[] = [];
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    const step = Math.sign(dx) || 1;
+    for (let x = a.x; step > 0 ? x <= b.x : x >= b.x; x += step) out.push({ x, y: a.y });
+  } else {
+    const step = Math.sign(dy) || 1;
+    for (let y = a.y; step > 0 ? y <= b.y : y >= b.y; y += step) out.push({ x: a.x, y });
+  }
+  return out;
 }

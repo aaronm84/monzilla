@@ -1,4 +1,5 @@
 import type { Battle } from './battle.js';
+import type { Plan } from './blueprints.js';
 import { newCareState, newGrowth, type Kaiju } from './care.js';
 import { recordInDex, type Dex } from './dex.js';
 import { inferKind, speciesKey, type Genome } from './genome.js';
@@ -8,7 +9,7 @@ import { forkSeed, hashString } from './rng.js';
 import { ISLAND_HEIGHT, ISLAND_WIDTH, generateIsland, isLand, type BuildLayer } from './world.js';
 import { spawnTile } from './nav.js';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export interface Settings {
   reduceMotion: boolean;
@@ -40,6 +41,8 @@ export interface MemberSave {
   activeBattle: Battle | null;
   /** Day index of the last villain that was fought, so one shows per day. */
   lastVillainDay: number | null;
+  /** Blueprints he has stamped and is filling in. */
+  plans: Plan[];
   updatedAt: number;
 }
 
@@ -83,6 +86,7 @@ export function newMemberSave(memberId: string, name: string, seedSource: string
     settings: defaultSettings(),
     activeBattle: null,
     lastVillainDay: null,
+    plans: [],
     updatedAt: now,
   };
 }
@@ -129,6 +133,17 @@ export function migrateSave(raw: unknown): MemberSave | null {
     for (const k of kaiju) if (!k.pos) k.pos = { ...spawn };
   }
 
+  // v3 -> v4: blocks stack; a single kind becomes a one-block column.
+  if (save.version < 4) {
+    const stacked: BuildLayer = {};
+    for (const [k, b] of Object.entries(blocks)) {
+      const legacy = b as unknown as { x: number; y: number; kind?: string; kinds?: string[]; broken: boolean };
+      const kinds = (legacy.kinds ?? (legacy.kind ? [legacy.kind] : [])) as BuildLayer[string]['kinds'];
+      if (kinds.length > 0) stacked[k] = { x: legacy.x, y: legacy.y, kinds, broken: legacy.broken };
+    }
+    blocks = stacked;
+  }
+
   const activeBattle = save.activeBattle
     ? { ...save.activeBattle, villain: { ...save.activeBattle.villain, genome: withKind(save.activeBattle.villain.genome) } }
     : null;
@@ -143,6 +158,7 @@ export function migrateSave(raw: unknown): MemberSave | null {
     stars: save.stars ?? 0,
     activeBattle,
     lastVillainDay: save.lastVillainDay ?? null,
+    plans: save.plans ?? [],
     version: SAVE_VERSION,
   };
 }

@@ -105,10 +105,10 @@ const clamp100 = (n: number) => Math.max(0, Math.min(100, n));
  * A full bar still gives a little xp so tapping never feels pointless, but
  * gives less so there is a reason to rotate through all four.
  */
-export function applyCare(kaiju: Kaiju, action: CareAction): CareResult {
+export function applyCare(kaiju: Kaiju, action: CareAction, bonus = 0): CareResult {
   const bar = CARE_INFO[action].bar;
   const before = kaiju.care[bar];
-  const after = clamp100(before + BAR_GAIN);
+  const after = clamp100(before + BAR_GAIN + bonus);
   const barGain = after - before;
   const xpGain = barGain > 0 ? XP_PER_ACTION : 1;
 

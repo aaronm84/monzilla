@@ -44,8 +44,9 @@ These come first. Any feature that breaks one of them is wrong.
    kaiju. Growth is tied to care, never to a clock, so nothing decays while he
    is away.
 2. **Build.** Snap-to-grid block building on the island, from the craft
-   zoom level with the palette as a drawer. Habitats, walls, towers,
-   decorations. Everything persists. This is the "order" outlet.
+   zoom level with the palette as a drawer. Blocks stack three high.
+   Blueprints turn blocks into structures that do something (see
+   Building below). Everything persists. This is the "order" outlet.
 3. **Alarm.** A villain appears on the horizon. He taps the alarm to start the
    fight, so it never interrupts him. He picks a guardian and uses two or
    three big moves.
@@ -154,6 +155,32 @@ only the blocks redraw, so panning stays smooth on an older iPad.
   everything.
 - **Villain encounters** are generated from the day's weather and biome, with
   stats scaled to the strongest guardian so fights stay winnable.
+
+## Building
+
+Blocks are not decoration. They stack, they form structures, and the
+structures change the numbers on the bars, which is the engineer's loop:
+build the thing, watch it work.
+
+- **Stacking.** A tile holds up to three blocks. Tapping a tile with a
+  block adds one on top; the eraser takes the top one off. Drag to draw
+  a straight line of blocks. Undo goes back thirty steps. A hand tool
+  pans; every other tool draws, so one finger never does both.
+- **Blueprints.** A structure is recognised from the block layer, never
+  stored separately. Building it is placing the right stacks in the
+  right shape. The drawer shows each blueprint with how many stand, and
+  tapping one stamps a ghost plan on the island that he fills in tile by
+  tile: a puzzle with one right answer. Finishing one gets a burst.
+  - Habitat: a 2 by 2 of wood with roof on top. The kaiju walks to its
+    door to sleep and gets +10 rest.
+  - Wall: a straight run of three or more double-stone. Villains hit
+    walls before anything else.
+  - Watchtower: stone, stone, tower on one tile. Each one lowers the
+    chance a villain turn breaks anything.
+- **Kaiju walk around blocks**, so walls shape paths. Later: villains
+  land on the beach and walk toward the nest, so where walls and towers
+  stand becomes a decision; materials gathered from biomes; a builder's
+  book that collects finished blueprints like the dex.
 
 ## Family multiplayer (asynchronous)
 

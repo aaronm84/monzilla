@@ -3,7 +3,7 @@ import { Rng, forkSeed } from './rng.js';
 import { TYPE_INFO, typeMultiplier, type KaijuType } from './types.js';
 import type { Villain } from './villain.js';
 import { weatherMultiplier, type Weather } from './weather.js';
-import { breakRandomBlock, type Block, type BuildLayer } from './world.js';
+import { breakRandomBlock, type Block, type BuildLayer, type Defense } from './world.js';
 
 export interface Move {
   id: string;
@@ -94,6 +94,7 @@ export function attack(
   move: Move,
   blocks: BuildLayer,
   memberId = 'me',
+  defense?: Defense,
 ): AttackResult {
   if (battle.status !== 'active') {
     return { battle, blocks, turn: { moveId: move.id, damage: 0, effectiveness: 1, brokenBlock: null } };
@@ -107,8 +108,9 @@ export function attack(
   if (status === 'active') {
     const rng = new Rng(forkSeed(battle.villain.genome.seed, `turn:${battle.turns.length}`));
     // Villains only stomp about half the time, so a small city survives.
-    if (rng.chance(0.5)) {
-      const result = breakRandomBlock(blocks, rng);
+    // Watchtowers lower the odds; walls take the hit first.
+    if (rng.chance(defense?.breakChance ?? 0.5)) {
+      const result = breakRandomBlock(blocks, rng, defense);
       brokenBlock = result.broken;
       nextBlocks = result.layer;
     }
