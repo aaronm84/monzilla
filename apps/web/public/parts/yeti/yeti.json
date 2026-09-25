@@ -1,0 +1,156 @@
+{
+ "kind": "yeti",
+ "atlas": "yeti",
+ "unit": 52,
+ "displayName": "Yeti",
+ "source": "docs/concept/kinds-and-species.png (extracted, whole body)",
+ "bodies": {
+  "baby": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.05,
+    2.11
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.512,
+      -1.011
+     ]
+    ],
+    "face": [
+     0.512,
+     -1.011
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.512,
+     -1.011
+    ],
+    "mouth": [
+     1.279,
+     -0.786
+    ],
+    "back": [
+     0,
+     -1.263
+    ],
+    "feet": [
+     0,
+     1.067
+    ],
+    "attackOrigin": [
+     1.279,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.281
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.56,
+     2.81
+    ],
+    "selectionOffset": [
+     0,
+     -0.337
+    ],
+    "footprint": [
+     2.3,
+     0.5
+    ]
+   }
+  },
+  "grown": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.05,
+    2.11
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.512,
+      -1.011
+     ]
+    ],
+    "face": [
+     0.512,
+     -1.011
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.512,
+     -1.011
+    ],
+    "mouth": [
+     1.279,
+     -0.786
+    ],
+    "back": [
+     0,
+     -1.263
+    ],
+    "feet": [
+     0,
+     1.067
+    ],
+    "attackOrigin": [
+     1.279,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.281
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.56,
+     2.81
+    ],
+    "selectionOffset": [
+     0,
+     -0.337
+    ],
+    "footprint": [
+     2.3,
+     0.5
+    ]
+   }
+  }
+ },
+ "parts": {
+  "face.villain": {
+   "frame": "face_villain",
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "z": "front",
+   "tint": "none"
+  }
+ },
+ "omit": [
+  "tail",
+  "wings",
+  "spike",
+  "horn",
+  "head"
+ ],
+ "motion": "organic"
+}

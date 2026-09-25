@@ -161,6 +161,13 @@ bodies and slot parts, converted to tintable base plus untinted detail
 layers, with estimated pivots, attach points, anchors, and bounds. They
 ship (listed in `index.json`) so the game shows the boards' art now.
 
+The other seven kinds (dragon, moth, turtle, yeti, crab, bird, serpent)
+are cut from `docs/concept/kinds-and-species.png` as whole-body sprites:
+the painted art already includes wings, tails and plates, so every slot
+is omitted and only the villain face overlay is layered on. Their colour
+is converted to a gray base and tinted by type, which keeps the painted
+pattern but not the original hues.
+
 Known limits of the extraction, fixed by real exports: the board bodies
 already include tails and plates, so `spike` is omitted and tail parts
 double up; resolution is the board's (about 40 px per body unit), so

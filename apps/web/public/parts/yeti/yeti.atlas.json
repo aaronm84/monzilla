@@ -1,0 +1,72 @@
+{
+ "frames": {
+  "body": {
+   "frame": {
+    "x": 8,
+    "y": 8,
+    "w": 133,
+    "h": 146
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 146
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 146
+   }
+  },
+  "body_detail": {
+   "frame": {
+    "x": 149,
+    "y": 8,
+    "w": 133,
+    "h": 146
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 146
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 146
+   }
+  },
+  "face_villain": {
+   "frame": {
+    "x": 290,
+    "y": 8,
+    "w": 69,
+    "h": 38
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 38
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 38
+   }
+  }
+ },
+ "meta": {
+  "image": "yeti.png",
+  "size": {
+   "w": 1024,
+   "h": 162
+  },
+  "scale": "1"
+ }
+}

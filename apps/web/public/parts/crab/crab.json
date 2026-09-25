@@ -1,0 +1,156 @@
+{
+ "kind": "crab",
+ "atlas": "crab",
+ "unit": 48,
+ "displayName": "Crab",
+ "source": "docs/concept/kinds-and-species.png (extracted, whole body)",
+ "bodies": {
+  "baby": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.12,
+    2.0
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.132,
+      -0.533
+     ]
+    ],
+    "face": [
+     0.132,
+     -0.533
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.132,
+     -0.533
+    ],
+    "mouth": [
+     0.926,
+     -0.32
+    ],
+    "back": [
+     0,
+     -1.2
+    ],
+    "feet": [
+     0,
+     1.013
+    ],
+    "attackOrigin": [
+     1.323,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.267
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.65,
+     2.67
+    ],
+    "selectionOffset": [
+     0,
+     -0.32
+    ],
+    "footprint": [
+     2.38,
+     0.5
+    ]
+   }
+  },
+  "grown": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.12,
+    2.0
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.132,
+      -0.533
+     ]
+    ],
+    "face": [
+     0.132,
+     -0.533
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.132,
+     -0.533
+    ],
+    "mouth": [
+     0.926,
+     -0.32
+    ],
+    "back": [
+     0,
+     -1.2
+    ],
+    "feet": [
+     0,
+     1.013
+    ],
+    "attackOrigin": [
+     1.323,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.267
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.65,
+     2.67
+    ],
+    "selectionOffset": [
+     0,
+     -0.32
+    ],
+    "footprint": [
+     2.38,
+     0.5
+    ]
+   }
+  }
+ },
+ "parts": {
+  "face.villain": {
+   "frame": "face_villain",
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "z": "front",
+   "tint": "none"
+  }
+ },
+ "omit": [
+  "tail",
+  "wings",
+  "spike",
+  "horn",
+  "head"
+ ],
+ "motion": "rigid"
+}

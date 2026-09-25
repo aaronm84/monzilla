@@ -1,0 +1,72 @@
+{
+ "frames": {
+  "body": {
+   "frame": {
+    "x": 8,
+    "y": 8,
+    "w": 127,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 127,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 127,
+    "h": 128
+   }
+  },
+  "body_detail": {
+   "frame": {
+    "x": 143,
+    "y": 8,
+    "w": 127,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 127,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 127,
+    "h": 128
+   }
+  },
+  "face_villain": {
+   "frame": {
+    "x": 278,
+    "y": 8,
+    "w": 69,
+    "h": 38
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 38
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 38
+   }
+  }
+ },
+ "meta": {
+  "image": "crab.png",
+  "size": {
+   "w": 1024,
+   "h": 144
+  },
+  "scale": "1"
+ }
+}

@@ -1,0 +1,156 @@
+{
+ "kind": "dragon",
+ "atlas": "dragon",
+ "unit": 52,
+ "displayName": "Dragon",
+ "source": "docs/concept/kinds-and-species.png (extracted, whole body)",
+ "bodies": {
+  "baby": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.22,
+    2.13
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.775,
+      -1.195
+     ]
+    ],
+    "face": [
+     0.775,
+     -1.195
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.775,
+     -1.195
+    ],
+    "mouth": [
+     1.606,
+     -0.967
+    ],
+    "back": [
+     0,
+     -1.281
+    ],
+    "feet": [
+     0,
+     1.082
+    ],
+    "attackOrigin": [
+     1.385,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.285
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.77,
+     2.85
+    ],
+    "selectionOffset": [
+     0,
+     -0.342
+    ],
+    "footprint": [
+     2.49,
+     0.5
+    ]
+   }
+  },
+  "grown": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.22,
+    2.13
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.775,
+      -1.195
+     ]
+    ],
+    "face": [
+     0.775,
+     -1.195
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.775,
+     -1.195
+    ],
+    "mouth": [
+     1.606,
+     -0.967
+    ],
+    "back": [
+     0,
+     -1.281
+    ],
+    "feet": [
+     0,
+     1.082
+    ],
+    "attackOrigin": [
+     1.385,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.285
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.77,
+     2.85
+    ],
+    "selectionOffset": [
+     0,
+     -0.342
+    ],
+    "footprint": [
+     2.49,
+     0.5
+    ]
+   }
+  }
+ },
+ "parts": {
+  "face.villain": {
+   "frame": "face_villain",
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "z": "front",
+   "tint": "none"
+  }
+ },
+ "omit": [
+  "tail",
+  "wings",
+  "spike",
+  "horn",
+  "head"
+ ],
+ "motion": "organic"
+}

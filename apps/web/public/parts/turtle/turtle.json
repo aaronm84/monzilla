@@ -1,0 +1,156 @@
+{
+ "kind": "turtle",
+ "atlas": "turtle",
+ "unit": 52,
+ "displayName": "Turtle",
+ "source": "docs/concept/kinds-and-species.png (extracted, whole body)",
+ "bodies": {
+  "baby": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.12,
+    2.06
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.849,
+      -0.825
+     ]
+    ],
+    "face": [
+     0.849,
+     -0.825
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.849,
+     -0.825
+    ],
+    "mouth": [
+     1.645,
+     -0.605
+    ],
+    "back": [
+     0,
+     -1.238
+    ],
+    "feet": [
+     0,
+     1.045
+    ],
+    "attackOrigin": [
+     1.327,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.275
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.65,
+     2.75
+    ],
+    "selectionOffset": [
+     0,
+     -0.33
+    ],
+    "footprint": [
+     2.39,
+     0.5
+    ]
+   }
+  },
+  "grown": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.12,
+    2.06
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.849,
+      -0.825
+     ]
+    ],
+    "face": [
+     0.849,
+     -0.825
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.849,
+     -0.825
+    ],
+    "mouth": [
+     1.645,
+     -0.605
+    ],
+    "back": [
+     0,
+     -1.238
+    ],
+    "feet": [
+     0,
+     1.045
+    ],
+    "attackOrigin": [
+     1.327,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.275
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.65,
+     2.75
+    ],
+    "selectionOffset": [
+     0,
+     -0.33
+    ],
+    "footprint": [
+     2.39,
+     0.5
+    ]
+   }
+  }
+ },
+ "parts": {
+  "face.villain": {
+   "frame": "face_villain",
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "z": "front",
+   "tint": "none"
+  }
+ },
+ "omit": [
+  "tail",
+  "wings",
+  "spike",
+  "horn",
+  "head"
+ ],
+ "motion": "organic"
+}

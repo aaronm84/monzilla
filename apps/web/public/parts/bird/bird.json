@@ -1,0 +1,156 @@
+{
+ "kind": "bird",
+ "atlas": "bird",
+ "unit": 52,
+ "displayName": "Bird",
+ "source": "docs/concept/kinds-and-species.png (extracted, whole body)",
+ "bodies": {
+  "baby": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.22,
+    2.16
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.831,
+      -1.212
+     ]
+    ],
+    "face": [
+     0.831,
+     -1.212
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.831,
+     -1.212
+    ],
+    "mouth": [
+     1.662,
+     -0.981
+    ],
+    "back": [
+     0,
+     -1.298
+    ],
+    "feet": [
+     0,
+     1.096
+    ],
+    "attackOrigin": [
+     1.385,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.288
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.77,
+     2.88
+    ],
+    "selectionOffset": [
+     0,
+     -0.346
+    ],
+    "footprint": [
+     2.49,
+     0.5
+    ]
+   }
+  },
+  "grown": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.22,
+    2.16
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.831,
+      -1.212
+     ]
+    ],
+    "face": [
+     0.831,
+     -1.212
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.831,
+     -1.212
+    ],
+    "mouth": [
+     1.662,
+     -0.981
+    ],
+    "back": [
+     0,
+     -1.298
+    ],
+    "feet": [
+     0,
+     1.096
+    ],
+    "attackOrigin": [
+     1.385,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.288
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.77,
+     2.88
+    ],
+    "selectionOffset": [
+     0,
+     -0.346
+    ],
+    "footprint": [
+     2.49,
+     0.5
+    ]
+   }
+  }
+ },
+ "parts": {
+  "face.villain": {
+   "frame": "face_villain",
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "z": "front",
+   "tint": "none"
+  }
+ },
+ "omit": [
+  "tail",
+  "wings",
+  "spike",
+  "horn",
+  "head"
+ ],
+ "motion": "organic"
+}

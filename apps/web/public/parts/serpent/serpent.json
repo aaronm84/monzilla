@@ -1,0 +1,156 @@
+{
+ "kind": "serpent",
+ "atlas": "serpent",
+ "unit": 52,
+ "displayName": "Serpent",
+ "source": "docs/concept/kinds-and-species.png (extracted, whole body)",
+ "bodies": {
+  "baby": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    1.86,
+    2.09
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.698,
+      -1.171
+     ]
+    ],
+    "face": [
+     0.698,
+     -1.171
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.698,
+     -1.171
+    ],
+    "mouth": [
+     1.396,
+     -0.948
+    ],
+    "back": [
+     0,
+     -1.255
+    ],
+    "feet": [
+     0,
+     1.06
+    ],
+    "attackOrigin": [
+     1.163,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.279
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.33,
+     2.79
+    ],
+    "selectionOffset": [
+     0,
+     -0.335
+    ],
+    "footprint": [
+     2.09,
+     0.5
+    ]
+   }
+  },
+  "grown": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    1.86,
+    2.09
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.698,
+      -1.171
+     ]
+    ],
+    "face": [
+     0.698,
+     -1.171
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.698,
+     -1.171
+    ],
+    "mouth": [
+     1.396,
+     -0.948
+    ],
+    "back": [
+     0,
+     -1.255
+    ],
+    "feet": [
+     0,
+     1.06
+    ],
+    "attackOrigin": [
+     1.163,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.279
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.33,
+     2.79
+    ],
+    "selectionOffset": [
+     0,
+     -0.335
+    ],
+    "footprint": [
+     2.09,
+     0.5
+    ]
+   }
+  }
+ },
+ "parts": {
+  "face.villain": {
+   "frame": "face_villain",
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "z": "front",
+   "tint": "none"
+  }
+ },
+ "omit": [
+  "tail",
+  "wings",
+  "spike",
+  "horn",
+  "head"
+ ],
+ "motion": "wobble"
+}

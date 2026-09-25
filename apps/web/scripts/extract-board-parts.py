@@ -22,12 +22,15 @@ OUT = os.path.join(ROOT, 'public', 'parts')
 PAD = 8
 
 board = np.asarray(Image.open(SRC).convert('RGB')).astype(np.float32)
+SRC2 = os.path.join(ROOT, '..', '..', 'docs', 'concept', 'kinds-and-species.png')
+board2 = np.asarray(Image.open(SRC2).convert('RGB')).astype(np.float32)
 
-def cut(box, bg_box=None, margin=4):
+def cut(box, bg_box=None, margin=4, src=None):
     """Crop a box, return (rgb float array, alpha 0..1) with background removed."""
+    src = board if src is None else src
     x0, y0, w, h = box
     x0 -= margin; y0 -= margin; w += margin * 2; h += margin * 2
-    crop = board[y0:y0 + h, x0:x0 + w]
+    crop = src[y0:y0 + h, x0:x0 + w]
     border = np.concatenate([crop[0], crop[-1], crop[:, 0], crop[:, -1]])
     bg = np.median(border, axis=0)
     dist = np.sqrt(((crop - bg) ** 2).sum(axis=2))
@@ -171,5 +174,49 @@ for kind, K in KINDS.items():
     json.dump(meta, open(os.path.join(d, f'{kind}.atlas.json'), 'w'), indent=1)
     manifest = {'kind': kind, 'atlas': kind, 'unit': u, 'displayName': kind.capitalize(), 'source': 'docs/concept/sprite-stress-test.png (extracted)',
                 'bodies': bodies, 'parts': parts, 'omit': K['omit'], 'motion': K['motion']}
+    json.dump(manifest, open(os.path.join(d, f'{kind}.json'), 'w'), indent=1)
+    print(f'{kind}: atlas {atlas.width}x{atlas.height}, {len(frames)} frames')
+
+
+# ---------------------------------------------------------------------------
+# The other seven kinds come from the kinds board as whole-body sprites: the
+# art already includes wings, tails and plates, so every slot is omitted and
+# only the villain face overlay (borrowed from the lizard set) is layered on.
+# Baby and grown share the crop; the genome's size scales it.
+WHOLE = {
+  # kind: (box on kinds board, unit, motion, head fraction of crop from centre (x right, y up), body size in u)
+  'dragon':  ((165, 203, 136, 140), 52, 'organic', (0.28, -0.42)),
+  'moth':    ((312, 199, 131, 139), 52, 'organic', (0.02, -0.30)),
+  'turtle':  ((453, 205, 130, 135), 52, 'organic', (0.32, -0.30)),
+  'yeti':    ((597, 201, 125, 138), 52, 'organic', (0.20, -0.36)),
+  'crab':    ((885, 221, 119, 120), 48, 'rigid',   (0.05, -0.20)),
+  'bird':    ((1029, 198, 136, 142), 52, 'organic', (0.30, -0.42)),
+  'serpent': ((1317, 204, 113, 137), 52, 'wobble', (0.30, -0.42)),
+}
+face_rgb, face_alpha = cut((408, 432, 61, 30))
+face_img = keep_color(face_rgb, face_alpha)
+for kind, (box, u, motion, head_f) in WHOLE.items():
+    rgb, alpha = cut(box, src=board2)
+    base, detail = to_layers(rgb, alpha, split_detail=True)
+    bw, bh = base.width / u, base.height / u
+    pivot = (0.5, 0.62)
+    head = [round(head_f[0] * bw, 3), round(head_f[1] * bh, 3)]
+    body = {
+        'frame': 'body', 'detail': 'body_detail', 'size': [round(bw * 0.8, 2), round(bh * 0.75, 2)], 'pivot': list(pivot),
+        'attach': {'head': [head], 'face': head},
+        'anchors': {'head': head, 'mouth': [round(head[0] + 0.3 * bw, 3), round(head[1] + 0.08 * bh, 3)], 'back': [0, round(-bh * 0.45, 3)],
+                    'feet': [0, round(bh * (1 - pivot[1]), 3)], 'attackOrigin': [round(bw * 0.5, 3), 0], 'effectOrigin': [0, round(-bh * 0.1, 3)]},
+        'bounds': {'selection': [round(bw, 2), round(bh, 2)], 'selectionOffset': [0, round(bh * (0.5 - pivot[1]), 3)], 'footprint': [round(bw * 0.9, 2), 0.5]},
+    }
+    frames = [('body', base), ('body_detail', detail), ('face_villain', face_img)]
+    atlas, meta = pack(frames)
+    meta['meta']['image'] = f'{kind}.png'
+    d = os.path.join(OUT, kind); os.makedirs(d, exist_ok=True)
+    atlas.save(os.path.join(d, f'{kind}.png'))
+    json.dump(meta, open(os.path.join(d, f'{kind}.atlas.json'), 'w'), indent=1)
+    manifest = {'kind': kind, 'atlas': kind, 'unit': u, 'displayName': kind.capitalize(), 'source': 'docs/concept/kinds-and-species.png (extracted, whole body)',
+                'bodies': {'baby': body, 'grown': body},
+                'parts': {'face.villain': {'frame': 'face_villain', 'pivot': [0.5, 0.5], 'z': 'front', 'tint': 'none'}},
+                'omit': ['tail', 'wings', 'spike', 'horn', 'head'], 'motion': motion}
     json.dump(manifest, open(os.path.join(d, f'{kind}.json'), 'w'), indent=1)
     print(f'{kind}: atlas {atlas.width}x{atlas.height}, {len(frames)} frames')

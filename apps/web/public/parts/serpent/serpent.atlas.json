@@ -1,0 +1,72 @@
+{
+ "frames": {
+  "body": {
+   "frame": {
+    "x": 8,
+    "y": 8,
+    "w": 121,
+    "h": 145
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 121,
+    "h": 145
+   },
+   "sourceSize": {
+    "w": 121,
+    "h": 145
+   }
+  },
+  "body_detail": {
+   "frame": {
+    "x": 137,
+    "y": 8,
+    "w": 121,
+    "h": 145
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 121,
+    "h": 145
+   },
+   "sourceSize": {
+    "w": 121,
+    "h": 145
+   }
+  },
+  "face_villain": {
+   "frame": {
+    "x": 266,
+    "y": 8,
+    "w": 69,
+    "h": 38
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 38
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 38
+   }
+  }
+ },
+ "meta": {
+  "image": "serpent.png",
+  "size": {
+   "w": 1024,
+   "h": 161
+  },
+  "scale": "1"
+ }
+}

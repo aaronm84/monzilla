@@ -1,0 +1,156 @@
+{
+ "kind": "moth",
+ "atlas": "moth",
+ "unit": 52,
+ "displayName": "Moth",
+ "source": "docs/concept/kinds-and-species.png (extracted, whole body)",
+ "bodies": {
+  "baby": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.14,
+    2.12
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.053,
+      -0.848
+     ]
+    ],
+    "face": [
+     0.053,
+     -0.848
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.053,
+     -0.848
+    ],
+    "mouth": [
+     0.855,
+     -0.622
+    ],
+    "back": [
+     0,
+     -1.272
+    ],
+    "feet": [
+     0,
+     1.074
+    ],
+    "attackOrigin": [
+     1.337,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.283
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.67,
+     2.83
+    ],
+    "selectionOffset": [
+     0,
+     -0.339
+    ],
+    "footprint": [
+     2.41,
+     0.5
+    ]
+   }
+  },
+  "grown": {
+   "frame": "body",
+   "detail": "body_detail",
+   "size": [
+    2.14,
+    2.12
+   ],
+   "pivot": [
+    0.5,
+    0.62
+   ],
+   "attach": {
+    "head": [
+     [
+      0.053,
+      -0.848
+     ]
+    ],
+    "face": [
+     0.053,
+     -0.848
+    ]
+   },
+   "anchors": {
+    "head": [
+     0.053,
+     -0.848
+    ],
+    "mouth": [
+     0.855,
+     -0.622
+    ],
+    "back": [
+     0,
+     -1.272
+    ],
+    "feet": [
+     0,
+     1.074
+    ],
+    "attackOrigin": [
+     1.337,
+     0
+    ],
+    "effectOrigin": [
+     0,
+     -0.283
+    ]
+   },
+   "bounds": {
+    "selection": [
+     2.67,
+     2.83
+    ],
+    "selectionOffset": [
+     0,
+     -0.339
+    ],
+    "footprint": [
+     2.41,
+     0.5
+    ]
+   }
+  }
+ },
+ "parts": {
+  "face.villain": {
+   "frame": "face_villain",
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "z": "front",
+   "tint": "none"
+  }
+ },
+ "omit": [
+  "tail",
+  "wings",
+  "spike",
+  "horn",
+  "head"
+ ],
+ "motion": "organic"
+}
