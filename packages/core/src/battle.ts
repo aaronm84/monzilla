@@ -1,4 +1,5 @@
 import { kaijuStats, type Kaiju } from './care.js';
+import { speciesKey } from './genome.js';
 import { Rng, forkSeed } from './rng.js';
 import { TYPE_INFO, typeMultiplier, type KaijuType } from './types.js';
 import type { Villain } from './villain.js';
@@ -132,8 +133,10 @@ export interface Reward {
   /** Egg fragment of this type. */
   fragmentType: KaijuType;
   stars: number;
+  /** The villain's card goes in the collection, keyed by species. */
+  cardKey: string;
 }
 
 export function rewardFor(villain: Villain): Reward {
-  return { fragmentType: villain.genome.type, stars: villain.isBoss ? 5 : 2 };
+  return { fragmentType: villain.genome.type, stars: villain.isBoss ? 5 : 2, cardKey: speciesKey(villain.genome) };
 }

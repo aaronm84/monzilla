@@ -15,3 +15,4 @@ export * from './battle.js';
 export * from './dex.js';
 export * from './eggs.js';
 export * from './save.js';
+export * from './day.js';

@@ -60,9 +60,21 @@ These come first. Any feature that breaks one of them is wrong.
    fight, so it never interrupts him. He picks a guardian and uses big
    moves. Each move is one villain step toward its goal (see Invasions
    below), so walls and towers are part of the fight.
-4. **Repair.** Broken blocks show as cracked outlines. Tapping snaps them back.
-5. **Collect.** Every fight drops an egg fragment or a villain card. The
-   Kaiju-dex fills in silhouettes, sortable by type, size, or stage.
+4. **Collect.** The win screen drops three things one after another:
+   stars, an egg fragment of the villain's type (the egg fills up on
+   screen, 1/3, 2/3, hatch), and the villain's card with its picture. A
+   sparkle marks a card he has never had. Cards are counted per species.
+5. **Repair.** Coming home from the fight lands the camera on the first
+   cracked block. Every cracked block wears a bobbing hammer; one tap
+   snaps it back, no tool needed, and the camera slides to the next. The
+   last one gets a sparkle.
+6. **Good night.** Once the villain is beaten and nothing is cracked, the
+   alarm button turns into a moon. Tapping it shows the day in icons
+   (trophy, hammers, egg, card, stars) and a good-night button: evening
+   falls on the island, every kaiju lies down with Zs for a moment, and
+   the moon gets a check. The evening stays until tomorrow, when the
+   next villain lands. Skipping it loses nothing; it is a bow on the
+   session, not a gate.
 
 ## Creatures
 

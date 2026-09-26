@@ -1,4 +1,5 @@
 import type { Battle } from './battle.js';
+import type { DayLog } from './day.js';
 import type { Plan } from './blueprints.js';
 import { newCareState, newGrowth, type Kaiju } from './care.js';
 import { recordInDex, type Dex } from './dex.js';
@@ -9,7 +10,7 @@ import { forkSeed, hashString } from './rng.js';
 import { ISLAND_HEIGHT, ISLAND_WIDTH, generateIsland, isLand, type BuildLayer } from './world.js';
 import { spawnTile } from './nav.js';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export interface Settings {
   reduceMotion: boolean;
@@ -43,6 +44,10 @@ export interface MemberSave {
   lastVillainDay: number | null;
   /** Blueprints he has stamped and is filling in. */
   plans: Plan[];
+  /** Villain cards collected from wins, by species key. */
+  cards: Record<string, number>;
+  /** What happened today; replaced when the day changes. */
+  today: DayLog | null;
   updatedAt: number;
 }
 
@@ -87,6 +92,8 @@ export function newMemberSave(memberId: string, name: string, seedSource: string
     activeBattle: null,
     lastVillainDay: null,
     plans: [],
+    cards: {},
+    today: null,
     updatedAt: now,
   };
 }
@@ -159,6 +166,8 @@ export function migrateSave(raw: unknown): MemberSave | null {
     activeBattle,
     lastVillainDay: save.lastVillainDay ?? null,
     plans: save.plans ?? [],
+    cards: save.cards ?? {},
+    today: save.today ?? null,
     version: SAVE_VERSION,
   };
 }

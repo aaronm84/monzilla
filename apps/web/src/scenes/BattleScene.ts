@@ -7,7 +7,10 @@ import {
   Rng,
   TYPE_INFO,
   WEATHER_INFO,
+  addCard,
   addFragment,
+  bumpDay,
+  eggReady,
   advanceInvasion,
   afterBattle,
   attack,
@@ -29,6 +32,7 @@ import { ensureTodaysBattle } from '../game/villainDay.js';
 import { getStore } from '../game/ctx.js';
 import { sfx } from '../game/audio.js';
 import { COLORS, FONT, burst, floatText, handleResize, label, layoutFor, makeBar, makeButton, panel, type Bar, type Button } from '../game/ui.js';
+import { drawEgg } from '../render/kaiju.js';
 import { createKaiju, kaijuAnchor } from '../render/kaijuSprite.js';
 import { attachMotion, presetFor, type Motion } from '../render/motion.js';
 import { getParts } from '../render/parts.js';
@@ -247,16 +251,26 @@ export class BattleScene extends Phaser.Scene {
     const reward = rewardFor(villain);
     for (const b of this.moveButtons) b.setDisabledState(true);
 
-    // Apply once: the battle is cleared from the save here.
+    // Apply once: the battle is cleared from the save here. The drops go
+    // straight into the egg, the card box, and the day's log.
+    const newCard = (save.cards[reward.cardKey] ?? 0) === 0;
     if (save.activeBattle) {
-      store.update((s) => ({
-        ...s,
-        activeBattle: null,
-        stars: s.stars + reward.stars,
-        eggs: addFragment(s.eggs, reward.fragmentType, forkSeed(s.seed, this.battle.id)),
-        kaiju: s.kaiju.map((k) => (k.id === this.battle.guardianId ? afterBattle(k) : k)),
-      }));
+      store.update((s) =>
+        bumpDay(
+          {
+            ...s,
+            activeBattle: null,
+            stars: s.stars + reward.stars,
+            eggs: addFragment(s.eggs, reward.fragmentType, forkSeed(s.seed, this.battle.id)),
+            cards: addCard(s.cards, reward.cardKey),
+            kaiju: s.kaiju.map((k) => (k.id === this.battle.guardianId ? afterBattle(k) : k)),
+          },
+          dayIndex(),
+          { beaten: true, stars: reward.stars, fragments: 1, cards: 1 },
+        ),
+      );
     }
+    const egg = store.save.eggs.find((e) => e.type === reward.fragmentType) ?? store.save.eggs[0];
 
     sfx.sparkle();
     burst(this, this.villainPos.x, this.villainPos.y, 0x9c27b0, save.settings, 30);
@@ -268,17 +282,57 @@ export class BattleScene extends Phaser.Scene {
       this.villainGfx.setVisible(false);
     }
 
-    const w = Math.min(420, L.w - L.pad * 2);
-    const h = 230;
+    // Three drops, one after another: stars, an egg fragment, the villain's card.
+    const w = Math.min(460, L.w - L.pad * 2);
+    const h = 300;
     const x = L.w / 2 - w / 2;
-    const y = L.h / 2 - h / 2 - 40;
+    const y = L.h / 2 - h / 2 - 30;
     const c = this.add.container(0, 0).setDepth(600);
     c.add(panel(this, x, y, w, h));
     c.add(label(this, L.w / 2, y + 40, '🏆', 48));
-    c.add(label(this, L.w / 2, y + 100, `⭐ +${reward.stars}     🥚 ${TYPE_INFO[reward.fragmentType].icon} +1`, 28));
+    const dropY = y + 140;
+    const slotW = w / 3;
+    const drops: Phaser.GameObjects.Container[] = [];
+
+    // Stars
+    const starDrop = this.add.container(x + slotW * 0.5, dropY);
+    starDrop.add(label(this, 0, 0, '⭐', 44));
+    starDrop.add(label(this, 0, 44, `+${reward.stars}`, 24));
+    drops.push(starDrop);
+
+    // Egg fragment: the egg with its fill, and how close it is to hatching.
+    const eggDrop = this.add.container(x + slotW * 1.5, dropY);
+    const eg = this.add.graphics();
+    const ratio = egg ? egg.fragments / 3 : 1 / 3;
+    drawEgg(eg, 0, -4, 26, TYPE_INFO[reward.fragmentType].color, ratio);
+    eggDrop.add(eg);
+    eggDrop.add(label(this, 0, 44, egg && eggReady(egg) ? '🐣 !' : `${TYPE_INFO[reward.fragmentType].icon} ${egg?.fragments ?? 1}/3`, 24));
+    drops.push(eggDrop);
+
+    // Villain card: a little card with its picture; a sparkle if it is the first.
+    const cardDrop = this.add.container(x + slotW * 2.5, dropY);
+    const cardW = 78;
+    const cardH = 96;
+    cardDrop.add(panel(this, -cardW / 2, -cardH / 2 - 6, cardW, cardH, 0x4a148c, 0.95));
+    cardDrop.add(createKaiju(this, { ...villain.genome, size: 1.0 }, 0, -4, 0.62, { glow: false }));
+    cardDrop.add(label(this, 0, cardH / 2 - 14, `🃏 ×${store.save.cards[reward.cardKey] ?? 1}`, 18, '#ffffff'));
+    if (newCard) cardDrop.add(label(this, cardW / 2 - 6, -cardH / 2 - 8, '✨', 24));
+    drops.push(cardDrop);
+
+    drops.forEach((d, i) => {
+      c.add(d);
+      if (save.settings.reduceMotion) return;
+      d.setScale(0).setAlpha(0);
+      this.time.delayedCall(350 + i * 380, () => {
+        sfx.unlock();
+        this.tweens.add({ targets: d, scale: 1, alpha: 1, duration: 320, ease: 'Back.easeOut' });
+        if (i === 2 && newCard) burst(this, d.x, d.y, 0xce93d8, save.settings, 16);
+      });
+    });
+
     c.add(
       makeButton(this, L.w / 2, y + h - 50, {
-        icon: '🏠', label: 'Back home', size: L.btn * 0.8, settings: save.settings, onTap: () => this.scene.start('Island'),
+        icon: '🏠', label: 'Back home', size: L.btn * 0.8, settings: save.settings, onTap: () => this.scene.start('Island', { afterFight: true }),
       }),
     );
   }

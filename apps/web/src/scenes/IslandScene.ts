@@ -15,6 +15,8 @@ import {
   blockKey,
   careAvailable,
   brokenBlocks,
+  bumpDay,
+  dayComplete,
   dayIndex,
   dexProgress,
   eggReady,
@@ -38,6 +40,7 @@ import {
   repairBlock,
   spawnTile,
   structureEffects,
+  todayLog,
   wanderTarget,
   GOAL_INFO,
   invasionPath,
@@ -132,14 +135,21 @@ export class IslandScene extends Phaser.Scene {
   private undoStack: BuildLayer[] = [];
   private stamping: Blueprint | null = null;
   private lineStart: { x: number; y: number } | null = null;
+  /** Coming back from a fight: zoom to the first cracked block. */
+  private afterFight = false;
+  private repairMarkers: Phaser.GameObjects.Container | null = null;
+  private nightOverlay: Phaser.GameObjects.Rectangle | null = null;
+  private dayPanel: Phaser.GameObjects.Container | null = null;
+  private alarmSlot = { x: 0, y: 0 };
 
   constructor() {
     super('Island');
   }
 
-  init(data: { selected?: number; build?: boolean }) {
+  init(data: { selected?: number; build?: boolean; afterFight?: boolean }) {
     if (typeof data.selected === 'number') this.selected = data.selected;
     if (typeof data.build === 'boolean') this.buildMode = data.build;
+    this.afterFight = data.afterFight === true;
   }
 
   create() {
@@ -167,6 +177,9 @@ export class IslandScene extends Phaser.Scene {
     this.lineStart = null;
     this.statsPanel = null;
     this.growthBar = null;
+    this.repairMarkers = null;
+    this.nightOverlay = null;
+    this.dayPanel = null;
 
     // --- Two layers, two cameras ------------------------------------------
     this.world = this.add.container(0, 0);
@@ -248,6 +261,12 @@ export class IslandScene extends Phaser.Scene {
     this.villainSprite = null;
     this.routeGfx = null;
     this.drawInvasion();
+    this.drawRepairMarkers();
+
+    // Evening on the island once he has said good night for today.
+    this.nightOverlay = this.add.rectangle(0, 0, worldW, worldH, 0x1a237e, 1).setOrigin(0).setDepth(1000).setAlpha(0);
+    this.world.add(this.nightOverlay);
+    if (todayLog(save, dayIndex()).done) this.nightOverlay.setAlpha(0.28);
 
     // --- Camera -------------------------------------------------------------
     const margin = TILE * 2;
@@ -265,7 +284,14 @@ export class IslandScene extends Phaser.Scene {
     const me = save.kaiju[this.selected];
     const focus = me?.pos ?? spawnTile(this.island);
     const fp = this.view.tileToPixel(focus.x, focus.y);
-    this.camera.setLevel(this.buildMode ? 2 : 0, this.buildMode ? fp.x : worldW / 2, this.buildMode ? fp.y : worldH / 2, false);
+    const cracked = brokenBlocks(save.blocks)[0];
+    if (this.afterFight && cracked && !this.buildMode) {
+      // Repair moment: the fight is won, now snap the blocks back.
+      const cp = this.view.tileToPixel(cracked.x, cracked.y);
+      this.camera.setLevel(1, cp.x, cp.y, false);
+    } else {
+      this.camera.setLevel(this.buildMode ? 2 : 0, this.buildMode ? fp.x : worldW / 2, this.buildMode ? fp.y : worldH / 2, false);
+    }
 
     // --- HUD ------------------------------------------------------------------
     this.buildHud(save, L);
@@ -380,6 +406,7 @@ export class IslandScene extends Phaser.Scene {
   private onTapWorld(wx: number, wy: number) {
     this.ghostGfx.clear();
     if (this.statsPanel) return this.closeStats();
+    if (this.dayPanel) return this.closeDayPanel();
     const store = getStore(this);
     const save = store.save;
     const t = this.view.pixelToTile(wx, wy);
@@ -398,6 +425,9 @@ export class IslandScene extends Phaser.Scene {
     }
 
     if (this.buildMode) return this.buildAt(t.x, t.y);
+
+    // A cracked block snaps back with a tap, no tool needed.
+    if (save.blocks[blockKey(t.x, t.y)]?.broken) return this.repairAt(t.x, t.y);
 
     // Tap the villain to start (or return to) the fight.
     if (this.villainSprite && kaijuContains(this.villainSprite, wx, wy)) return this.scene.start('Battle');
@@ -557,6 +587,51 @@ export class IslandScene extends Phaser.Scene {
       floatText(this, p.x + TILE / 2, p.y - TILE, `${bp.icon} ✓`, '#ffffff', store.save.settings, 40, this.world);
     }
     if (done.length > 0) this.redrawBlocks();
+    this.drawRepairMarkers();
+  }
+
+  /** Snap one cracked block back. Outside build mode this is the whole repair step. */
+  private repairAt(x: number, y: number) {
+    const store = getStore(this);
+    const px = this.view.tileToPixel(x, y);
+    store.update((st) => bumpDay({ ...st, blocks: repairBlock(st.blocks, x, y) }, dayIndex(), { repaired: 1 }));
+    sfx.repair();
+    burst(this, px.x, px.y, 0xa5d6a7, store.save.settings, 12, this.world);
+    floatText(this, px.x, px.y - TILE * 0.6, '🔨 ✓', '#ffffff', store.save.settings, 30, this.world);
+    this.afterBuild();
+    const left = brokenBlocks(store.save.blocks);
+    if (left.length === 0) {
+      // All fixed: a sparkle, and the alarm turns into the moon if the day is done.
+      this.time.delayedCall(350, () => {
+        sfx.sparkle();
+        burst(this, px.x, px.y, COLORS.star, store.save.settings, 24, this.world);
+        floatText(this, px.x, px.y - TILE, '✨', '#ffffff', store.save.settings, 40, this.world);
+      });
+    } else if (this.camera.level >= 1) {
+      const next = this.view.tileToPixel(left[0]!.x, left[0]!.y);
+      this.camera.centerOn(next.x, next.y);
+    }
+    this.refreshAlarm(store.save);
+    this.updateGlow(store.save);
+  }
+
+  /** A bobbing hammer over every cracked block, so the next thing is visible on the map. */
+  private drawRepairMarkers() {
+    const save = getStore(this).save;
+    this.repairMarkers?.destroy();
+    this.repairMarkers = null;
+    const broken = brokenBlocks(save.blocks);
+    if (broken.length === 0) return;
+    const c = this.add.container(0, 0).setDepth(900);
+    for (const b of broken) {
+      const p = this.view.tileToPixel(b.x, b.y);
+      const t = this.add.text(p.x, p.y - TILE * 0.9, '🔨', { fontSize: '26px', fontFamily: FONT }).setOrigin(0.5);
+      c.add(t);
+      if (!save.settings.reduceMotion) this.tweens.add({ targets: t, y: t.y - 10, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    }
+    this.world.add(c);
+    this.world.sort('depth');
+    this.repairMarkers = c;
   }
 
   private buildAt(x: number, y: number) {
@@ -717,20 +792,132 @@ export class IslandScene extends Phaser.Scene {
       this.careButtons[action] = b;
       this.ui.add(b);
     });
+    this.alarmSlot = { x: startX + CARE_ACTIONS.length * (L.btn + gap), y: careY };
+    this.refreshAlarm(save);
+  }
+
+  /**
+   * The last button is the day's arc: a siren while the villain is about,
+   * a moon once he has beaten it and fixed everything, and a moon with a
+   * check after he has said good night.
+   */
+  private refreshAlarm(save: MemberSave) {
+    const L = layoutFor(this);
+    const kaiju = save.kaiju[this.selected];
+    this.alarmBtn?.destroy();
     const villainToday = save.activeBattle !== null;
     const inv = save.activeBattle?.invasion;
     const steps = inv ? invasionStepsLeft(inv, this.island, save.blocks) : 0;
-    this.alarmBtn = makeButton(this, startX + CARE_ACTIONS.length * (L.btn + gap), careY, {
-      icon: villainToday ? '🚨' : '✅',
-      label: villainToday ? (inv ? `${GOAL_INFO[inv.goal].label}` : 'Bad guy alert') : 'All clear today',
-      size: L.btn,
-      color: villainToday ? COLORS.alarm : 0x9fb3c8,
-      settings: save.settings,
-      disabled: !villainToday || !kaiju,
-      sub: inv ? (inv.arrived ? '😴' : `${steps}👣`) : '',
-      onTap: () => this.scene.start('Battle'),
-    });
+    const today = dayIndex();
+    const complete = dayComplete(save, today);
+    const done = todayLog(save, today).done;
+    if (villainToday) {
+      this.alarmBtn = makeButton(this, this.alarmSlot.x, this.alarmSlot.y, {
+        icon: '🚨',
+        label: inv ? `${GOAL_INFO[inv.goal].label}` : 'Bad guy alert',
+        size: L.btn,
+        color: COLORS.alarm,
+        settings: save.settings,
+        disabled: !kaiju,
+        sub: inv ? (inv.arrived ? '😴' : `${steps}👣`) : '',
+        onTap: () => this.scene.start('Battle'),
+      });
+    } else if (complete) {
+      this.alarmBtn = makeButton(this, this.alarmSlot.x, this.alarmSlot.y, {
+        icon: '🌙',
+        label: done ? 'Good night' : 'Day done',
+        size: L.btn,
+        color: 0x5c6bc0,
+        settings: save.settings,
+        sub: done ? '✅' : '',
+        onTap: () => this.showDayPanel(),
+      });
+    } else {
+      this.alarmBtn = makeButton(this, this.alarmSlot.x, this.alarmSlot.y, {
+        icon: '✅',
+        label: 'All clear today',
+        size: L.btn,
+        color: 0x9fb3c8,
+        settings: save.settings,
+        disabled: true,
+        onTap: () => {},
+      });
+    }
     this.ui.add(this.alarmBtn);
+  }
+
+  /** The end of the day: what happened today, and a good-night button. */
+  private showDayPanel() {
+    if (this.dayPanel) return this.closeDayPanel();
+    if (this.statsPanel) this.closeStats();
+    const store = getStore(this);
+    const save = store.save;
+    const today = dayIndex();
+    const log = todayLog(save, today);
+    const L = layoutFor(this);
+    const w = Math.min(360, L.w - L.pad * 2);
+    const rows: string[] = [`🏆 ${log.beaten ? '✅' : '▫️'}`, `🔨 ${log.repaired}`, `🥚 +${log.fragments}`, `🃏 +${log.cards}`, `⭐ +${log.stars}`];
+    const h = rows.length * 38 + 150;
+    const x = L.w / 2 - w / 2;
+    const y = L.h / 2 - h / 2;
+    const c = this.add.container(0, 0).setDepth(700);
+    c.add(panel(this, x, y, w, h));
+    c.add(label(this, x + w / 2, y + 34, '🌙', 36));
+    rows.forEach((r, i) => c.add(label(this, x + w / 2, y + 80 + i * 38, r, 26)));
+    c.add(
+      makeButton(this, x + w / 2, y + h - 54, {
+        icon: log.done ? '🏠' : '😴',
+        label: log.done ? 'Okay' : 'Good night',
+        size: L.btn * 0.8,
+        settings: save.settings,
+        onTap: () => (log.done ? this.closeDayPanel() : this.goodNight()),
+      }),
+    );
+    if (!save.settings.reduceMotion) {
+      c.setAlpha(0);
+      this.tweens.add({ targets: c, alpha: 1, duration: 250 });
+    }
+    this.ui.add(c);
+    this.dayPanel = c;
+  }
+
+  private closeDayPanel() {
+    this.dayPanel?.destroy();
+    this.dayPanel = null;
+    sfx.tap();
+  }
+
+  /** Evening falls, every kaiju settles down for a moment, and the day is marked done. */
+  private goodNight() {
+    const store = getStore(this);
+    const today = dayIndex();
+    store.update((s) => bumpDay(s, today, { done: true }));
+    this.closeDayPanel();
+    const settings = store.save.settings;
+    sfx.sparkle();
+    if (this.nightOverlay) {
+      if (settings.reduceMotion) this.nightOverlay.setAlpha(0.28);
+      else this.tweens.add({ targets: this.nightOverlay, alpha: 0.28, duration: 1500 });
+    }
+    for (const k of store.save.kaiju) {
+      const sprite = this.kaijuSprites.get(k.id);
+      if (!sprite || this.walkers.has(k.id)) continue;
+      this.wanderTimers.get(k.id)?.remove(false);
+      const head = kaijuAnchor(sprite, 'head');
+      if (!settings.reduceMotion) {
+        this.tweens.add({ targets: sprite, scaleY: 0.72, scaleX: sprite.scaleX * 1.12, duration: 500, ease: 'Sine.easeOut', yoyo: true, hold: 3500 });
+      }
+      for (let i = 0; i < 3; i++) {
+        this.time.delayedCall(600 + i * 1200, () => {
+          const z = this.add.text(head.x + 14 * Math.sign(sprite.scaleX), head.y - 10, '💤', { fontSize: '24px', fontFamily: FONT }).setOrigin(0.5).setDepth(950);
+          this.world.add(z);
+          this.tweens.add({ targets: z, y: z.y - 40, x: z.x + 10, alpha: 0, duration: 1200, onComplete: () => z.destroy() });
+        });
+      }
+      this.time.delayedCall(5000, () => this.scheduleWander(k.id));
+    }
+    this.refreshAlarm(store.save);
+    this.updateGlow(store.save);
   }
 
   /** The villain on the shore, its route to what it wants, and the goal marker. */
@@ -909,8 +1096,11 @@ export class IslandScene extends Phaser.Scene {
     const egg = save.eggs[0];
     const kaiju = save.kaiju[this.selected];
     if (egg && eggReady(egg)) return;
+    // Cracked blocks glow on the map themselves; the build button points at them from the HUD.
     if (brokenBlocks(save.blocks).length > 0) return this.buildBtn.setGlow(true);
     if (kaiju && save.activeBattle) return this.alarmBtn.setGlow(true);
+    const today = dayIndex();
+    if (kaiju && dayComplete(save, today) && !todayLog(save, today).done) return this.alarmBtn.setGlow(true);
     if (kaiju && !this.activity) this.careButtons[neediestCare(kaiju.care)]?.setGlow(true);
   }
 

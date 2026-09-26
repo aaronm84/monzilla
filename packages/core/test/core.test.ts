@@ -375,7 +375,9 @@ describe('save', () => {
     const s = migrateSave({ version: 1, memberId: 'x', name: 'x', seed: 1 });
     expect(s?.settings.reduceMotion).toBe(false);
     expect(s?.kaiju).toEqual([]);
-    expect(s?.version).toBe(4);
+    expect(s?.version).toBe(5);
+    expect(s?.cards).toEqual({});
+    expect(s?.today).toBeNull();
   });
   it('moves v2 blocks to the centre of the bigger island and places kaiju', () => {
     const fresh = newMemberSave('m', 'T', 'seed');
@@ -409,5 +411,27 @@ describe('save', () => {
     expect(keys[0]).toMatch(/^[a-z]+:water$/);
     expect(s.dex[keys[0]!]?.count).toBe(3);
     expect(s.dex[keys[0]!]?.seenGuardian).toBe(true);
+  });
+});
+
+describe('day log', () => {
+  it('tracks today, resets on a new day, and completes when beaten and repaired', async () => {
+    const { newMemberSave, bumpDay, todayLog, dayComplete, addCard, placeBlock, breakRandomBlock, generateIsland, spawnTile, Rng } = await import('../src/index.js');
+    let save = newMemberSave('m1', 'Test', 'day-seed');
+    expect(todayLog(save, 100).beaten).toBe(false);
+    save = bumpDay(save, 100, { beaten: true, stars: 2, fragments: 1 });
+    save = bumpDay(save, 100, { stars: 3 });
+    expect(todayLog(save, 100)).toMatchObject({ day: 100, beaten: true, stars: 5, fragments: 1, done: false });
+    expect(dayComplete(save, 100)).toBe(true);
+    // A broken block holds the day open until it is fixed.
+    const island = generateIsland(save.seed);
+    const t = spawnTile(island);
+    let blocks = placeBlock({}, island, t.x, t.y, 'stone');
+    blocks = breakRandomBlock(blocks, new Rng(1)).layer;
+    expect(dayComplete({ ...save, blocks }, 100)).toBe(false);
+    // Tomorrow starts fresh.
+    expect(todayLog(save, 101)).toMatchObject({ day: 101, beaten: false, stars: 0 });
+    expect(dayComplete(save, 101)).toBe(false);
+    expect(addCard(addCard({}, 'robot:fire'), 'robot:fire')).toEqual({ 'robot:fire': 2 });
   });
 });
