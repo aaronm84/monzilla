@@ -39,6 +39,9 @@ import {
   spawnTile,
   structureEffects,
   wanderTarget,
+  GOAL_INFO,
+  invasionPath,
+  invasionStepsLeft,
   weatherFor,
   type BlockKind,
   type Blueprint,
@@ -56,6 +59,7 @@ import { IslandCamera } from '../game/camera.js';
 import { COLORS, FONT, burst, floatText, handleResize, label, layoutFor, makeBar, makeButton, panel, type Bar, type Button } from '../game/ui.js';
 import { drawEgg } from '../render/kaiju.js';
 import { createKaiju, kaijuAnchor, kaijuContains } from '../render/kaijuSprite.js';
+import { ensureTodaysBattle } from '../game/villainDay.js';
 import { Rng } from '@monzilla/core';
 import { attachMotion, presetFor, type Motion } from '../render/motion.js';
 import { getParts } from '../render/parts.js';
@@ -106,6 +110,8 @@ export class IslandScene extends Phaser.Scene {
   /** A care activity in progress: the buttons lock until it ends. */
   private activity: { action: CareAction; kaijuId: string } | null = null;
   private activityBar: Bar | null = null;
+  private villainSprite: Phaser.GameObjects.Container | null = null;
+  private routeGfx: Phaser.GameObjects.Graphics | null = null;
   private careBars: Partial<Record<CareAction, Bar>> = {};
   private growthBar: Bar | null = null;
   private careButtons: Partial<Record<CareAction, Button>> = {};
@@ -139,6 +145,8 @@ export class IslandScene extends Phaser.Scene {
   create() {
     handleResize(this);
     const store = getStore(this);
+    // Today's villain lands before anything reads the save, so the HUD sees it.
+    ensureTodaysBattle(store);
     const save = store.save;
     const L = layoutFor(this);
     this.selected = Math.min(this.selected, Math.max(0, save.kaiju.length - 1));
@@ -235,6 +243,11 @@ export class IslandScene extends Phaser.Scene {
       this.addKaijuSprite(k);
       this.scheduleWander(k.id);
     }
+
+    // Today's villain waits on the shore. It only moves during a fight.
+    this.villainSprite = null;
+    this.routeGfx = null;
+    this.drawInvasion();
 
     // --- Camera -------------------------------------------------------------
     const margin = TILE * 2;
@@ -385,6 +398,9 @@ export class IslandScene extends Phaser.Scene {
     }
 
     if (this.buildMode) return this.buildAt(t.x, t.y);
+
+    // Tap the villain to start (or return to) the fight.
+    if (this.villainSprite && kaijuContains(this.villainSprite, wx, wy)) return this.scene.start('Battle');
 
     // Tap on a kaiju shows its stats; tap elsewhere walks the selected one.
     for (const [id, sprite] of this.kaijuSprites) {
@@ -701,17 +717,64 @@ export class IslandScene extends Phaser.Scene {
       this.careButtons[action] = b;
       this.ui.add(b);
     });
-    const villainToday = save.activeBattle !== null || save.lastVillainDay !== today;
+    const villainToday = save.activeBattle !== null;
+    const inv = save.activeBattle?.invasion;
+    const steps = inv ? invasionStepsLeft(inv, this.island, save.blocks) : 0;
     this.alarmBtn = makeButton(this, startX + CARE_ACTIONS.length * (L.btn + gap), careY, {
-      icon: save.activeBattle ? '⚔️' : '🚨',
-      label: save.activeBattle ? 'Back to the fight' : villainToday ? 'Bad guy alert' : 'All clear',
+      icon: villainToday ? '🚨' : '✅',
+      label: villainToday ? (inv ? `${GOAL_INFO[inv.goal].label}` : 'Bad guy alert') : 'All clear today',
       size: L.btn,
       color: villainToday ? COLORS.alarm : 0x9fb3c8,
       settings: save.settings,
       disabled: !villainToday || !kaiju,
+      sub: inv ? (inv.arrived ? '😴' : `${steps}👣`) : '',
       onTap: () => this.scene.start('Battle'),
     });
     this.ui.add(this.alarmBtn);
+  }
+
+  /** The villain on the shore, its route to what it wants, and the goal marker. */
+  private drawInvasion() {
+    const save = getStore(this).save;
+    const inv = save.activeBattle?.invasion;
+    this.villainSprite?.destroy();
+    this.villainSprite = null;
+    this.routeGfx?.destroy();
+    this.routeGfx = null;
+    if (!inv) return;
+    const g = this.add.graphics();
+    const route = invasionPath(this.island, inv.pos, inv.goalTile, save.blocks) ?? [];
+    g.lineStyle(3, 0x9c27b0, 0.5);
+    let prev = this.view.tileToPixel(inv.pos.x, inv.pos.y);
+    for (const t of route) {
+      const p = this.view.tileToPixel(t.x, t.y);
+      g.lineBetween(prev.x, prev.y, p.x, p.y);
+      prev = p;
+    }
+    for (const t of route) {
+      const p = this.view.tileToPixel(t.x, t.y);
+      g.fillStyle(0x9c27b0, 0.55);
+      g.fillCircle(p.x, p.y, 4);
+    }
+    // Goal marker
+    const gp = this.view.tileToPixel(inv.goalTile.x, inv.goalTile.y);
+    g.lineStyle(3, 0x9c27b0, 0.8);
+    g.strokeCircle(gp.x, gp.y, TILE * 0.45);
+    this.routeGfx = g;
+    this.world.add(g);
+    const goalIcon = this.add.text(gp.x, gp.y - TILE * 0.7, GOAL_INFO[inv.goal].icon, { fontSize: '22px', fontFamily: FONT }).setOrigin(0.5);
+    this.world.add(goalIcon);
+    this.routeGfx.setData('icon', goalIcon);
+
+    const p = this.view.tileToPixel(inv.pos.x, inv.pos.y);
+    const c = createKaiju(this, inv.villain.genome, p.x, p.y - TILE * 0.15, (TILE / 36) * 0.55);
+    c.setDepth(inv.pos.y);
+    // Face the way it is going.
+    if (route[0] && route[0].x < inv.pos.x) c.setScale(-1, 1);
+    this.world.add(c);
+    this.world.sort('depth');
+    attachMotion(this, c, presetFor(inv.villain.genome.kind, getParts(this).get(inv.villain.genome.kind)?.motion), save.settings);
+    this.villainSprite = c;
   }
 
   private focusPoint(): [number, number] {
@@ -847,7 +910,7 @@ export class IslandScene extends Phaser.Scene {
     const kaiju = save.kaiju[this.selected];
     if (egg && eggReady(egg)) return;
     if (brokenBlocks(save.blocks).length > 0) return this.buildBtn.setGlow(true);
-    if (kaiju && (save.activeBattle || save.lastVillainDay !== dayIndex())) return this.alarmBtn.setGlow(true);
+    if (kaiju && save.activeBattle) return this.alarmBtn.setGlow(true);
     if (kaiju && !this.activity) this.careButtons[neediestCare(kaiju.care)]?.setGlow(true);
   }
 

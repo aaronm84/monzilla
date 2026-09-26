@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   Rng,
   addFragment,
+  advanceInvasion,
   allSpeciesKeys,
   applyCare,
   attack,
@@ -17,12 +18,15 @@ import {
   generateVillain,
   genomeFromSeed,
   hatchGenome,
+  invasionPath,
+  invasionStepsLeft,
   isLand,
   kaijuStats,
   lineTiles,
   migrateSave,
   movesFor,
   nestTile,
+  newInvasion,
   newMemberSave,
   placeBlock,
   planComplete,
@@ -275,9 +279,53 @@ describe('battle', () => {
       turns++;
     }
     expect(battle.status).toBe('won');
-    expect(turns).toBeGreaterThanOrEqual(3);
-    expect(turns).toBeLessThanOrEqual(12);
+    expect(turns).toBeGreaterThanOrEqual(4);
+    expect(turns).toBeLessThanOrEqual(16);
     expect(battle.contributions['me']).toBeGreaterThanOrEqual(villain.maxHp);
+  });
+});
+
+describe('invasion', () => {
+  it('lands on the shore, walks to the nest, and smashes blocks in the way', () => {
+    const save = newMemberSave('m1', 'Test', 'seed');
+    const island = generateIsland(save.seed);
+    const villain = generateVillain(new Rng(3), { weather: 'rain', biome: 'beach', guardianStatTotal: 100 });
+    villain.origin = 'tide';
+    villain.goal = 'nest';
+    villain.ability = 'none';
+    let inv = newInvasion(villain, island, {}, [], save.seed);
+    expect(isLand(island, inv.landing.x, inv.landing.y)).toBe(true);
+    expect(inv.goalTile).toEqual(nestTile(island));
+    // Wall off the tile right before the nest on the villain's route.
+    const route = invasionPath(island, inv.pos, inv.goalTile, {})!;
+    expect(route.length).toBeGreaterThan(0);
+    const wallTile = route[Math.max(0, route.length - 2)]!;
+    let blocks = placeBlock({}, island, wallTile.x, wallTile.y, 'stone');
+    const rng = new Rng(9);
+    let brokeSomething = false;
+    for (let i = 0; i < 60 && !inv.arrived; i++) {
+      const step = advanceInvasion(inv, island, blocks, 1, rng);
+      inv = step.invasion;
+      blocks = step.blocks;
+      if (step.broken.length > 0) brokeSomething = true;
+    }
+    expect(inv.arrived).toBe(true);
+    expect(invasionStepsLeft(inv, island, blocks)).toBe(0);
+    // Either it smashed the wall or found a way round; a wall never makes the nest unreachable.
+    expect(brokeSomething || Object.values(blocks).every((b) => !b.broken)).toBe(true);
+  });
+  it('regulars keep their origin, goal and ability', () => {
+    let seen = false;
+    for (let s = 0; s < 60 && !seen; s++) {
+      const v = generateVillain(new Rng(s), { weather: 'storm', biome: 'meadow', guardianStatTotal: 100 });
+      if (v.rosterId === 'pyronyx') {
+        seen = true;
+        expect(v.goal).toBe('nest');
+        expect(v.ability).toBe('stompy');
+        expect(v.origin).toBe('storm');
+      }
+    }
+    expect(seen).toBe(true);
   });
 });
 

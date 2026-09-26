@@ -1,31 +1,31 @@
 import Phaser from 'phaser';
 import {
+  ABILITY_INFO,
+  GOAL_INFO,
   KIND_INFO,
+  ORIGIN_INFO,
   Rng,
   TYPE_INFO,
   WEATHER_INFO,
   addFragment,
+  advanceInvasion,
   afterBattle,
   attack,
-  biomeCounts,
   computeDamage,
   dayIndex,
   findStructures,
   forkSeed,
   generateIsland,
-  generateVillain,
-  kaijuStats,
+  invasionStepsLeft,
   movesFor,
-  recordInDex,
   rewardFor,
-  startBattle,
-  statTotal,
   structureEffects,
   weatherFor,
   type Battle,
   type Kaiju,
   type Move,
 } from '@monzilla/core';
+import { ensureTodaysBattle } from '../game/villainDay.js';
 import { getStore } from '../game/ctx.js';
 import { sfx } from '../game/audio.js';
 import { COLORS, FONT, burst, floatText, handleResize, label, layoutFor, makeBar, makeButton, panel, type Bar, type Button } from '../game/ui.js';
@@ -50,6 +50,7 @@ export class BattleScene extends Phaser.Scene {
   private busy = false;
   private villainPos = { x: 0, y: 0 };
   private guardianPos = { x: 0, y: 0 };
+  private stepsText: Phaser.GameObjects.Text | null = null;
 
   constructor() {
     super('Battle');
@@ -62,27 +63,17 @@ export class BattleScene extends Phaser.Scene {
     const L = layoutFor(this);
     if (save.kaiju.length === 0) return this.scene.start('Island');
 
-    // Resume or start today's fight.
+    // Resume today's fight (created when the island opened).
     const today = dayIndex();
     const weather = weatherFor(save.seed, today);
-    if (save.activeBattle) {
-      this.battle = save.activeBattle;
-      this.guardianIndex = Math.max(0, save.kaiju.findIndex((k) => k.id === this.battle.guardianId));
-    } else {
-      const island = generateIsland(save.seed);
-      const biome = biomeCounts(island)[0]?.biome ?? 'meadow';
-      const strongest = Math.max(...save.kaiju.map((k) => statTotal(kaijuStats(k))));
-      const villain = generateVillain(new Rng(forkSeed(save.seed, `villain:${today}`)), {
-        weather,
-        biome,
-        guardianStatTotal: strongest,
-      });
-      this.guardianIndex = 0;
-      this.battle = startBattle(`b_${today}`, villain, save.kaiju[0]!, weather);
-      store.update((s) => ({ ...s, activeBattle: this.battle, lastVillainDay: today, dex: recordInDex(s.dex, villain.genome) }));
-    }
-    const guardian = save.kaiju[this.guardianIndex]!;
+    const battle = ensureTodaysBattle(store);
+    if (!battle) return this.scene.start('Island');
+    this.battle = battle;
+    this.guardianIndex = Math.max(0, store.save.kaiju.findIndex((k) => k.id === this.battle.guardianId));
+    const guardian = store.save.kaiju[this.guardianIndex]!;
     const villain = this.battle.villain;
+    const inv = this.battle.invasion;
+    const fog = inv?.ability === 'fog';
 
     // Backdrop
     const bg = this.add.graphics();
@@ -130,6 +121,13 @@ export class BattleScene extends Phaser.Scene {
     this.guardianMotion = attachMotion(this, this.guardianGfx, presetFor(guardian.genome.kind, lib.get(guardian.genome.kind)?.motion), save.settings);
 
     label(this, this.villainPos.x, arenaTop + 20, `${villain.isBoss ? '👑 ' : ''}${KIND_INFO[villain.genome.kind].icon} ${villain.name}`, 22, COLORS.muted);
+    // Who it is and what it wants: origin, goal, ability, and steps to the goal.
+    if (inv) {
+      const island = generateIsland(save.seed);
+      const steps = invasionStepsLeft(inv, island, save.blocks);
+      const line = `${ORIGIN_INFO[inv.origin].icon}  ${GOAL_INFO[inv.goal].icon} ${inv.arrived ? '😴' : `${steps}👣`}${inv.ability !== 'none' ? `  ${ABILITY_INFO[inv.ability].icon}` : ''}`;
+      this.stepsText = label(this, this.villainPos.x, arenaTop + 52, line, 24, COLORS.text);
+    }
     if (guardian.name) label(this, this.guardianPos.x, arenaTop + 20, guardian.name, 22, COLORS.muted);
 
     // Guardian picker (only when there is a choice)
@@ -163,7 +161,7 @@ export class BattleScene extends Phaser.Scene {
       return makeButton(this, L.w / 2 - totalW / 2 + L.btn / 2 + i * (L.btn + gap), y, {
         icon: move.icon,
         label: move.label,
-        sub: `${damage}${eff}`,
+        sub: fog ? '?' : `${damage}${eff}`,
         size: L.btn,
         color: effectiveness >= 2 ? 0x43a047 : COLORS.button,
         settings: save.settings,
@@ -171,8 +169,10 @@ export class BattleScene extends Phaser.Scene {
         onTap: () => this.doMove(move, guardian),
       });
     });
-    const best = moves.reduce((a, b) => (computeDamage(guardian, b, villain, weather).damage > computeDamage(guardian, a, villain, weather).damage ? b : a));
-    this.moveButtons[moves.indexOf(best)]?.setGlow(true);
+    if (!fog) {
+      const best = moves.reduce((a, b) => (computeDamage(guardian, b, villain, weather).damage > computeDamage(guardian, a, villain, weather).damage ? b : a));
+      this.moveButtons[moves.indexOf(best)]?.setGlow(true);
+    }
 
     if (this.battle.status === 'won') this.showReward();
   }
@@ -183,9 +183,28 @@ export class BattleScene extends Phaser.Scene {
     const store = getStore(this);
     const save = store.save;
     const fx = structureEffects(findStructures(save.blocks));
-    const result = attack(this.battle, guardian, move, save.blocks, save.memberId, { breakChance: fx.breakChance, preferred: fx.wallTiles });
+    // Damage only; the villain's turn is its walk across the island below.
+    const result = attack(this.battle, guardian, move, save.blocks, save.memberId, { breakChance: 0, preferred: fx.wallTiles });
     this.battle = result.battle;
-    store.update((s) => ({ ...s, activeBattle: this.battle, blocks: result.blocks }));
+    let brokenCount = 0;
+    let arrivedNow = false;
+    let skipped = false;
+    if (this.battle.status === 'active' && this.battle.invasion) {
+      const island = generateIsland(save.seed);
+      const step = advanceInvasion(this.battle.invasion, island, save.blocks, fx.breakChance, new Rng(forkSeed(save.seed, `inv:${this.battle.id}:${this.battle.turns.length}`)));
+      arrivedNow = step.invasion.arrived && !this.battle.invasion.arrived;
+      brokenCount = step.broken.length;
+      skipped = step.skipped;
+      this.battle = { ...this.battle, invasion: step.invasion };
+      store.update((s) => ({ ...s, activeBattle: this.battle, blocks: step.blocks }));
+      if (this.stepsText) {
+        const inv = step.invasion;
+        const steps = invasionStepsLeft(inv, island, step.blocks);
+        this.stepsText.setText(`${ORIGIN_INFO[inv.origin].icon}  ${GOAL_INFO[inv.goal].icon} ${inv.arrived ? '😴' : `${steps}👣`}${inv.ability !== 'none' ? `  ${ABILITY_INFO[inv.ability].icon}` : ''}`);
+      }
+    } else {
+      store.update((s) => ({ ...s, activeBattle: this.battle }));
+    }
 
     // Guardian lunges, villain flinches, number pops.
     if (move.id === 'roar') sfx.roar();
@@ -203,14 +222,18 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    // Villain's turn: maybe a block gets stomped. Shown, never punished.
+    // Villain's turn: it walked, stomped, dozed, or reached its goal. Shown, never punished.
     this.time.delayedCall(650, () => {
-      if (result.turn.brokenBlock) {
+      if (brokenCount > 0) {
         sfx.crunch();
         this.cameras.main.shake(save.settings.reduceMotion ? 0 : 150, 0.004);
-        floatText(this, this.guardianPos.x, this.guardianPos.y - 120, '🧱💥', '#ffffff', save.settings, 40);
+        floatText(this, this.villainPos.x, this.villainPos.y - 100, brokenCount > 1 ? '🧱💥💥' : '🧱💥', '#ffffff', save.settings, 40);
+      } else if (arrivedNow) {
+        floatText(this, this.villainPos.x, this.villainPos.y - 100, `${GOAL_INFO[this.battle.invasion!.goal].icon}😴`, '#ffffff', save.settings, 40);
+      } else if (skipped) {
+        floatText(this, this.villainPos.x, this.villainPos.y - 80, '😴', '#ffffff', save.settings, 34);
       } else {
-        floatText(this, this.villainPos.x, this.villainPos.y - 80, '😤', '#ffffff', save.settings, 34);
+        floatText(this, this.villainPos.x, this.villainPos.y - 80, '👣', '#ffffff', save.settings, 34);
       }
       this.busy = false;
     });

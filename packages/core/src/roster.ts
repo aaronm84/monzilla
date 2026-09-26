@@ -21,6 +21,9 @@ export interface RosterEntry {
   weather?: Weather;
   heads?: 1 | 2 | 3;
   boss?: boolean;
+  origin?: 'tide' | 'storm' | 'volcano' | 'deep' | 'sky';
+  goal?: 'nest' | 'tower' | 'lantern' | 'nap';
+  ability?: 'none' | 'fog' | 'stompy' | 'sturdy' | 'speedy' | 'sleepy';
 }
 
 export const ROSTER: RosterEntry[] = [
@@ -31,12 +34,12 @@ export const ROSTER: RosterEntry[] = [
   { id: 'boulder', name: 'Boulder', kind: 'turtle', type: 'rock', alignment: 'guardian', seed: 1003 },
   { id: 'bolt', name: 'Bolt', kind: 'robot', type: 'lightning', alignment: 'guardian', seed: 1005 },
   // Villains (recurring bad guys)
-  { id: 'pyronyx', name: 'Pyronyx', kind: 'dragon', type: 'fire', alignment: 'villain', seed: 2001, heads: 3, weather: 'storm', boss: true },
-  { id: 'moltrex', name: 'Moltrex', kind: 'turtle', type: 'fire', alignment: 'villain', seed: 2006, weather: 'sunny' },
-  { id: 'shadowra', name: 'Shadowra', kind: 'bird', type: 'sky', alignment: 'villain', seed: 2003, weather: 'wind' },
-  { id: 'pinchor', name: 'Pinchor', kind: 'crab', type: 'ice', alignment: 'villain', seed: 2002, weather: 'snow' },
-  { id: 'gloop', name: 'Gloop', kind: 'blob', type: 'water', alignment: 'villain', seed: 2004, weather: 'rain' },
-  { id: 'murk', name: 'Murk', kind: 'serpent', type: 'plant', alignment: 'villain', seed: 2005, weather: 'fog' },
+  { id: 'pyronyx', name: 'Pyronyx', kind: 'dragon', type: 'fire', alignment: 'villain', seed: 2001, heads: 3, weather: 'storm', boss: true, origin: 'storm', goal: 'nest', ability: 'stompy' },
+  { id: 'moltrex', name: 'Moltrex', kind: 'turtle', type: 'fire', alignment: 'villain', seed: 2006, weather: 'sunny', origin: 'volcano', goal: 'tower', ability: 'sturdy' },
+  { id: 'shadowra', name: 'Shadowra', kind: 'bird', type: 'sky', alignment: 'villain', seed: 2003, weather: 'wind', origin: 'sky', goal: 'lantern', ability: 'speedy' },
+  { id: 'pinchor', name: 'Pinchor', kind: 'crab', type: 'ice', alignment: 'villain', seed: 2002, weather: 'snow', origin: 'tide', goal: 'nap', ability: 'none' },
+  { id: 'gloop', name: 'Gloop', kind: 'blob', type: 'water', alignment: 'villain', seed: 2004, weather: 'rain', origin: 'tide', goal: 'nest', ability: 'sleepy' },
+  { id: 'murk', name: 'Murk', kind: 'serpent', type: 'plant', alignment: 'villain', seed: 2005, weather: 'fog', origin: 'deep', goal: 'lantern', ability: 'fog' },
 ];
 
 export function rosterGenome(entry: RosterEntry): Genome {

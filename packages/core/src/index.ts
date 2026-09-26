@@ -8,6 +8,7 @@ export * from './care.js';
 export * from './world.js';
 export * from './nav.js';
 export * from './blueprints.js';
+export * from './invasion.js';
 export * from './weather.js';
 export * from './villain.js';
 export * from './battle.js';

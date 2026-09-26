@@ -56,9 +56,10 @@ These come first. Any feature that breaks one of them is wrong.
    zoom level with the palette as a drawer. Blocks stack three high.
    Blueprints turn blocks into structures that do something (see
    Building below). Everything persists. This is the "order" outlet.
-3. **Alarm.** A villain appears on the horizon. He taps the alarm to start the
-   fight, so it never interrupts him. He picks a guardian and uses two or
-   three big moves.
+3. **Alarm.** A villain lands on the beach. He taps the alarm to start the
+   fight, so it never interrupts him. He picks a guardian and uses big
+   moves. Each move is one villain step toward its goal (see Invasions
+   below), so walls and towers are part of the fight.
 4. **Repair.** Broken blocks show as cracked outlines. Tapping snaps them back.
 5. **Collect.** Every fight drops an egg fragment or a villain card. The
    Kaiju-dex fills in silhouettes, sortable by type, size, or stage.
@@ -186,10 +187,41 @@ build the thing, watch it work.
     walls before anything else.
   - Watchtower: stone, stone, tower on one tile. Each one lowers the
     chance a villain turn breaks anything.
-- **Kaiju walk around blocks**, so walls shape paths. Later: villains
-  land on the beach and walk toward the nest, so where walls and towers
-  stand becomes a decision; materials gathered from biomes; a builder's
-  book that collects finished blueprints like the dex.
+- **Kaiju walk around blocks**, so walls shape paths. Villains walk
+  around them too, or smash through when the way round is long (see
+  Invasions), so where walls and towers stand is a decision. Later:
+  materials gathered from biomes; a builder's book that collects finished
+  blueprints like the dex.
+
+## Invasions
+
+One villain a day, made from the seed and the date so the whole family
+sees the same one. It exists the moment the island opens, standing on
+the beach with a dotted route to its goal, so he can look before he
+taps the alarm. It never moves on its own: the walk only happens inside
+the fight, one stride per move he makes. No timer, nothing to lose by
+waiting.
+
+- **Origin** says where it came from and picks the landing shore: tide
+  (west), storm (north), volcano (the shore nearest the mountains), deep
+  (south), sky (a random shore). Shown as an icon next to the name.
+- **Goal** is what it wants, shown as an icon on the map: the nest, the
+  tallest watchtower, a lantern, or a nap spot. If the thing does not
+  exist it falls back to the nest.
+- **Ability** is one twist, shown as an icon: fog hides move damage
+  numbers (no best-move glow), stompy breaks two blocks a turn, sturdy
+  has more health, speedy takes longer strides, sleepy skips every other
+  turn. Regular villains have fixed origin, goal and ability, so he
+  learns them like characters.
+- **The walk.** Each fight move, the villain takes a stride of three
+  tiles along the cheapest route (blocked tiles cost four, so it walks
+  round a short wall and shoves through a long one). A block in its way
+  cracks (two for stompy); watchtowers lower that chance. Reaching the
+  goal only means it sits down there until it is beaten, so the fight is
+  never lost. The alarm button shows the steps left, or a sleeping face
+  once it has arrived.
+- **Fights last six to eight moves** so the walk matters. Beating the
+  villain clears the alarm for the day.
 
 ## Family multiplayer (asynchronous)
 

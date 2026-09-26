@@ -11,6 +11,10 @@ export interface Villain {
   name: string;
   /** Set when this is a named regular from the roster. */
   rosterId?: string;
+  /** Fixed for regulars; generated for the rest (see invasion.ts). */
+  origin?: 'tide' | 'storm' | 'volcano' | 'deep' | 'sky';
+  goal?: 'nest' | 'tower' | 'lantern' | 'nap';
+  ability?: 'none' | 'fog' | 'stompy' | 'sturdy' | 'speedy' | 'sleepy';
   genome: Genome;
   stats: Stats;
   maxHp: number;
@@ -62,14 +66,16 @@ export function generateVillain(rng: Rng, opts: VillainOptions): Villain {
   genome.size = isBoss ? 1.7 : 1.2;
   const stats = deriveStats(genome, { stage: 'guardian', feedCount: 0, playCount: 0, washCount: 0, sleepCount: 0 });
   // A guardian's basic hit is roughly power/4 (see battle.ts); aim for about
-  // five hits with a neutral move, three with the right type.
-  const hitsToWin = isBoss ? 9 : 5;
+  // eight hits with a neutral move, four with the right type, so the villain
+  // gets enough turns for its walk across the island to matter.
+  const hitsToWin = isBoss ? 14 : 8;
   const roughHit = Math.max(4, opts.guardianStatTotal / 4 / 4);
-  const maxHp = Math.round(roughHit * hitsToWin);
+  const sturdy = regular?.ability === 'sturdy';
+  const maxHp = Math.round(roughHit * hitsToWin * (sturdy ? 1.4 : 1));
   return {
     id: `v_${rng.seed.toString(36)}`,
     name: regular ? regular.name : villainName(rng.fork('name')),
-    ...(regular ? { rosterId: regular.id } : {}),
+    ...(regular ? { rosterId: regular.id, origin: regular.origin, goal: regular.goal, ability: regular.ability } : {}),
     genome,
     stats,
     maxHp,

@@ -4,6 +4,7 @@ import { TYPE_INFO, typeMultiplier, type KaijuType } from './types.js';
 import type { Villain } from './villain.js';
 import { weatherMultiplier, type Weather } from './weather.js';
 import { breakRandomBlock, type Block, type BuildLayer, type Defense } from './world.js';
+import type { Invasion } from './invasion.js';
 
 export interface Move {
   id: string;
@@ -53,6 +54,8 @@ export interface Battle {
   status: BattleStatus;
   /** Contributions per helper in a team fight, keyed by member id. */
   contributions: Record<string, number>;
+  /** The villain on the island: where it landed, what it wants, where it is. */
+  invasion?: Invasion;
 }
 
 export function startBattle(id: string, villain: Villain, guardian: Kaiju, weather: Weather): Battle {
